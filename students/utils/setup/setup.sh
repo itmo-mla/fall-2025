@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STUDENTS_ROOT="$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)"
+STUDENTS_ROOT="$(cd $(dirname ${BASH_SOURCE[0]})/../.. && pwd)"
 
 # Функция для проверки корректности ввода kebab-case
 validate_kebab_case() {
