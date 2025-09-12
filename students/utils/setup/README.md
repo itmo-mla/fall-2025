@@ -11,9 +11,9 @@
 1. Перейдите в директорию students
 2. Дайте права на выполнение (для Unix-систем):
    ```bash
-   chmod +x utils/setup.sh
+   chmod +x utils/setup/setup.sh
    ```
 3. Запустите скрипт и введите запрашиваемые данные:
    ```bash
-   bash utils/setup.sh
+   bash utils/setup/setup.sh
    ```
