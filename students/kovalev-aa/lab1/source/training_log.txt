@@ -1,0 +1,11 @@
+[Init] Q on random subset: 65.516111
+[Epoch    0] RegLoss: 6.046478 | Accuracy: 0.5292
+[Epoch  100] RegLoss: 2.071758 | Accuracy: 0.5785
+[Epoch  200] RegLoss: 1.832874 | Accuracy: 0.5323
+[Epoch  300] RegLoss: 1.691252 | Accuracy: 0.5262
+[Epoch  400] RegLoss: 1.493460 | Accuracy: 0.5292
+[Epoch  500] RegLoss: 1.382766 | Accuracy: 0.4677
+[Epoch  600] RegLoss: 1.296578 | Accuracy: 0.6031
+[Epoch  700] RegLoss: 1.167395 | Accuracy: 0.5846
+[Epoch  800] RegLoss: 1.105123 | Accuracy: 0.5415
+[Epoch  900] RegLoss: 1.045926 | Accuracy: 0.5846
