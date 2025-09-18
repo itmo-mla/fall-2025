@@ -178,7 +178,7 @@ def main():
     custom_model1 = BinaryClassificator(
         init_type = "none",
         subsampling_type = "margin_abs",
-        lr = 1e-3,
+        lr = 1e-4,
         reg_coef = 0.3,
         m = 3,
         momentum = 0.7,
@@ -189,7 +189,7 @@ def main():
     custom_model2 = BinaryClassificator(
         init_type = "corr",
         subsampling_type = "margin_abs",
-        lr = 1e-3,
+        lr = 1e-4,
         reg_coef = 0.3,
         m = 3,
         momentum = 0.7,
@@ -200,7 +200,7 @@ def main():
     custom_model3 = BinaryClassificator(
         init_type = "multi_start",
         subsampling_type = "margin_abs",
-        lr = 1e-3,
+        lr = 1e-4,
         reg_coef = 0.3,
         m = 3,
         momentum = 0.7,
@@ -211,7 +211,7 @@ def main():
     custom_model4 = BinaryClassificator(
         init_type = "multi_start",
         subsampling_type = "random",
-        lr = 1e-3,
+        lr = 1e-4,
         reg_coef = 0.3,
         m = 3,
         momentum = 0.7,
