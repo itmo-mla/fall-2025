@@ -79,6 +79,23 @@ Recall: 0.947
 
 **Эталонное решение (sklearn.SGDClassifier):**
 
+```python
+model = SGDClassifier(
+    loss='log_loss',
+    penalty='l2', 
+    alpha=0.01,
+    max_iter=1,
+    tol=None,
+    random_state=42
+)
+
+n_epochs = 1000
+for epoch in range(n_epochs):
+    model.partial_fit(X_train, y_train, classes=np.unique(y_train))
+
+y_pred = model.predict(X_test)
+```
+
 ```
 Confusion Matrix:
 [[ 56   7]

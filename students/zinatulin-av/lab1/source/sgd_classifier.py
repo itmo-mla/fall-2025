@@ -22,10 +22,10 @@ class SimpleSGDClassifier:
     self.weight_init = weight_init
     self.ordering = ordering
     self.w = np.array([])
-    self.w0 = 0
     self.Q = 0
 
   def fit(self, X, y, loss_callback):
+    X = np.hstack([X, np.ones((X.shape[0], 1))])
     match self.weight_init:
       case 'random':
         self.w = np.random.normal(0, 2/X.shape[1], X.shape[1])
@@ -43,13 +43,13 @@ class SimpleSGDClassifier:
         self.w = best_params
       case _:
         raise NotImplementedError('Incorrect ordering param')
-    self.w0 = 0
+      
     _xy = list(zip(X, y))
 
     random.shuffle(_xy)
     self.Q = 0
     for x, y in _xy:
-      self.Q += self.loss.loss(x @ self.w + self.w0) / len(_xy)
+      self.Q += self.loss.loss(x @ self.w) / len(_xy)
 
     for epoch in tqdm(range(self.max_iter)):
 
@@ -58,7 +58,7 @@ class SimpleSGDClassifier:
           random.shuffle(_xy)
         case 'large_margin_first':
           def compare(a, b):
-            return (b[0] @ self.w + self.w0) * y - (a[0] @ self.w + self.w0) * y
+            return (b[0] @ self.w) * y - (a[0] @ self.w) * y
           _xy = sorted(_xy, key=cmp_to_key(compare))
         case _:
           raise NotImplementedError('Incorrect ordering param')
@@ -67,19 +67,18 @@ class SimpleSGDClassifier:
 
         match self.penalty:
           case 'l2':
-            self.w = self.optimizer.step(self.w * (1 - self.optimizer.lr * self.alpha), lambda w: self.loss.derivative((x @ w + self.w0) * y) * x * y + self.alpha * w)
+            self.w = self.optimizer.step(self.w * (1 - self.optimizer.lr * self.alpha), lambda w: self.loss.derivative((x @ w) * y) * x * y + self.alpha * w)
           case None:
-            self.w = self.optimizer.step(self.w, lambda w: self.loss.derivative((x @ w + self.w0) * y) * x * y)
+            self.w = self.optimizer.step(self.w, lambda w: self.loss.derivative((x @ w) * y) * x * y)
           case _:
             raise NotImplementedError('Incorrect penalty param')
-
-        self.w0 = self.optimizer.step(self.w0, lambda w0: self.loss.derivative((x @ self.w + w0) * y) * y)
-        self.Q = self.forget_rate * self.loss.loss((x @ self.w + self.w0) * y) + (1 - self.forget_rate) * self.Q;
+        self.Q = self.forget_rate * self.loss.loss((x @ self.w) * y) + (1 - self.forget_rate) * self.Q;
 
         if loss_callback:
           loss_callback(self.Q)
 
   def predict(self, X):
+    X = np.hstack([X, np.ones((X.shape[0], 1))])
     def sign(x):
       return x / np.abs(x)
-    return sign(X @ self.w + self.w0)
+    return sign(X @ self.w)

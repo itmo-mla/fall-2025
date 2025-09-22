@@ -20,18 +20,26 @@ class MomentumOptimizer(Optimizer):
   """ Метод моментов (Поляк) """
   def __init__(self, learning_rate=0.01, momentum=0.5):
     self.lr = learning_rate
+    self.v = np.array([])
     self.momentum = momentum
 
   def step(self, weights: np.ndarray, grad_fn) -> np.ndarray:
-    return weights - self.lr * ((self.momentum * weights) + (1 - self.momentum) * grad_fn(weights))
+    if self.v.size == 0:
+      self.v = np.zeros(weights.shape[0])
+    self.v = self.momentum * self.v + (1 - self.momentum) * grad_fn(weights)
+    return weights - self.lr * self.v
 
 
 class NAGOptimizer(Optimizer):
   """ Nesterov Accelerated Gradient """
   def __init__(self, learning_rate=0.01, momentum=0.5):
     self.lr = learning_rate
+    self.v = np.array([])
     self.momentum = momentum
 
   def step(self, weights: np.ndarray, grad_fn) -> np.ndarray:
-    return weights - self.lr * ((self.momentum * weights) + (1 - self.momentum) * grad_fn(weights * self.momentum * self.lr))
+    if self.v.size == 0:
+      self.v = np.zeros(weights.shape[0])
+    self.v = self.momentum * self.v + (1 - self.momentum) * grad_fn(weights - self.momentum * self.v)
+    return weights - self.lr * self.v
 
