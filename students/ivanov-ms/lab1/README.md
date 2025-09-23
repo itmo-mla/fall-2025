@@ -122,6 +122,10 @@
    
     Метрики полученной модели на тестовой выборке:
     ```text
+   Best custom model evaluation of functionality (Q):
+   -- Train Q: 0.0293
+   -- Test Q: 0.0348
+
     Evaluating best custom model:
     -- Accuracy: 0.9653
     -- Precision: 0.9528
@@ -147,23 +151,28 @@
    
 8. Сравнение с эталонными моделями из sklearn.
    
-   Здесь обучались 2 модели - LogisticRegression и SVC (Support Vector Machine Classifier)
+   Здесь обучались 2 модели Стохастического Градинтного спуска SGDClassifier - с `loss="log_loss"` (по сути LogisticRegression) и с `loss="hinge"` (по сути Support Vector Machine Classifier).
    
-   После обучения и анализа accuracy, лучшей из них оказалась модель логистической регрессии. Она показала следующие метрики:
+   Каждой из моделей были переданы параметры по аналогии с тем, как были обучены собственные модели:
+   * `penalty="l2"` для L2 регуляризации
+   * `max_iter=epochs` количество эпох для обучения (такое же как у собственных моделей)
+   * `learning_rate='constant', eta0=LEARNING_RATE` фиксированный Learning Rate (такой же как у собственных моделей)
+   
+   После обучения и анализа accuracy, лучшей из них оказалась модель с `loss="hinge"` (SVC). Она показала следующие метрики:
    ```text
    Evaluating best sklearn model:
-   -- Accuracy: 0.9763
-   -- Precision: 0.9907
-   -- Recall: 0.9639
-   -- F1-Score: 0.9771
+   -- Accuracy: 0.9100
+   -- Precision: 0.9508
+   -- Recall: 0.8735
+   -- F1-Score: 0.9105
  
    Confusion Matrix (sklearn):
                       Actual
                     Positive Negative
-   Predict Positive      320        3
-           Negative       12      298
+   Predict Positive      290       15
+           Negative       42      286
    ```
    
-   Таким образом собственная реализация оказалась лишь чуть хуже, реализации логистической регрессии из sklearn, уступив лишь на 0.011 в accuracy. 
+   Таким образом собственная реализация оказалась даже немного лучше, чем реализации линейных классификаторов с SGD из sklearn, показав accuracy на `0.0553` выше. 
 
 Полный лог предобработки данных, обучения моделей и анализа результатов доступен [тут](logs/full_pipeline_log.txt)

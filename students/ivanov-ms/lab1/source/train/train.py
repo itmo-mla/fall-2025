@@ -2,8 +2,7 @@ import time
 import warnings
 import numpy as np
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+from sklearn.linear_model import SGDClassifier
 
 from model import LinearClassifier
 from metrics import accuracy_score
@@ -24,7 +23,7 @@ def train_and_eval_model(
 
 
 def multi_start(
-    X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray,
+    X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, loss: str = "log_loss",
     num_starts: int = 10, batch_method: str = "margin", epochs=100, batch_size=32, log_prefix: str = ""
 ):
     best_model = None
@@ -35,6 +34,7 @@ def multi_start(
         model = LinearClassifier(
             weights_init_method="random",
             batch_method=batch_method,
+            loss=loss,
             learning_rate=LEARNING_RATE,
             momentum_betta=MOMENTUM_BETTA,
             l2_coef=L2_COEF,
@@ -55,24 +55,29 @@ def multi_start(
 
 def train_pipeline(
     X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray,
-    num_starts: int = 10, epochs: int = 100, batch_size: int = 32
+    loss: str = "log_loss", num_starts: int = 10, epochs: int = 100, batch_size: int = 32
 ):
     # Multi-starts with random weights init
 
-    print("Start Train pipeline")
+    print("Start Train pipeline with params:")
+    print(f"-- Loss name: {loss}")
+    print(f"-- Multi-start number of starts: {num_starts}")
+    print(f"-- Train epochs: {epochs}")
+    print(f"-- Batch size: {batch_size}")
+
     start_time = time.time()
 
     print("-- Start multi-start with margin-based batch method")
     best_model, best_model_acc, best_hist = multi_start(
         X_train, y_train, X_test, y_test,
-        num_starts=num_starts, batch_method="margin",
+        loss=loss, num_starts=num_starts, batch_method="margin",
         epochs=epochs, batch_size=batch_size, log_prefix="---- "
     )
     print(f"-- Complete multi-start with margin-based batch method with best accuracy {best_model_acc:.4f}")
     print("-- Start multi-start with random batch method")
     model, accuracy, hist = multi_start(
         X_train, y_train, X_test, y_test,
-        num_starts=num_starts, batch_method="random",
+        loss=loss, num_starts=num_starts, batch_method="random",
         epochs=epochs, batch_size=batch_size, log_prefix="---- "
     )
     print(f"-- Complete multi-start with random batch method with best accuracy {accuracy:.4f}")
@@ -87,6 +92,7 @@ def train_pipeline(
     model = LinearClassifier(
         weights_init_method="correlation",
         batch_method="margin",
+        loss=loss,
         learning_rate=LEARNING_RATE,
         momentum_betta=MOMENTUM_BETTA,
         l2_coef=L2_COEF,
@@ -107,6 +113,7 @@ def train_pipeline(
     model = LinearClassifier(
         weights_init_method="correlation",
         batch_method="random",
+        loss=loss,
         learning_rate=LEARNING_RATE,
         momentum_betta=MOMENTUM_BETTA,
         l2_coef=L2_COEF,
@@ -127,7 +134,10 @@ def train_pipeline(
     return best_model, best_hist
 
 
-def train_sklearn_models(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray):
+def train_sklearn_models(
+    X_train: np.ndarray, y_train: np.ndarray,
+    X_test: np.ndarray, y_test: np.ndarray, epochs: int = 100
+):
     print("Train SKLearn models")
     start_time = time.time()
 
@@ -135,14 +145,20 @@ def train_sklearn_models(X_train: np.ndarray, y_train: np.ndarray, X_test: np.nd
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
 
-        print("-- Train LogisticRegression")
-        logistic_clf = LogisticRegression()
+        print("-- Train LogisticRegression with SGD")
+        logistic_clf = SGDClassifier(
+            loss="log_loss", penalty="l2", max_iter=epochs,
+            learning_rate='constant', eta0=LEARNING_RATE
+        )
         logistic_clf.fit(X_train, y_train)
         logistic_score = logistic_clf.score(X_test, y_test)
         print(f"-- LogisticRegression accuracy: {logistic_score:.4f}")
 
-        print("-- Train SVC (Support Vector Machine Classifier)")
-        svc_clf = SVC()
+        print("-- Train SVC (Support Vector Machine Classifier) with SGD")
+        svc_clf = SGDClassifier(
+            loss="hinge", penalty="l2", max_iter=epochs,
+            learning_rate='constant', eta0=LEARNING_RATE
+        )
         svc_clf.fit(X_train, y_train)
         svc_score = svc_clf.score(X_test, y_test)
         print(f"-- SVC accuracy: {svc_score:.4f}")

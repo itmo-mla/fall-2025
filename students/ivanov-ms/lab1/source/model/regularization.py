@@ -6,10 +6,10 @@ class Regularization:
         self.reg_coef = np.float64(reg_coef)
 
     def calc(self, weights: np.ndarray):
-        raise NotImplementedError("Regularization calculation not impelemted")
+        raise NotImplementedError("Regularization calculation not implemented")
 
     def derivative(self, weights: np.ndarray):
-        raise NotImplementedError("Regularization derivative not impelemted")
+        raise NotImplementedError("Regularization derivative not implemented")
 
     def __call__(self, weights: np.ndarray):
         return self.calc(weights)

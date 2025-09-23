@@ -1,4 +1,4 @@
-# python source/main.py --with-plotting > logs/full_pipeline_log.txt 2>&1
+# python source/main.py --loss binary --with-plotting > logs/full_pipeline_log.txt 2>&1
 
 Running data pipeline...
 Numeric features describe:
@@ -22,75 +22,85 @@ SMOKE           2111      2                     no  2067    0    0.0
 SCC             2111      2                     no  2015    0    0.0
 CALC            2111      4              Sometimes  1401    0    0.0
 MTRANS          2111      5  Public_Transportation  1580    0    0.0
-Data pipeline finished in 1.28 sec
-Start Train pipeline
+Data pipeline finished in 1.24 sec
+Start Train pipeline with params:
+-- Loss name: binary
+-- Multi-start number of starts: 10
+-- Train epochs: 100
+-- Batch size: 32
 -- Start multi-start with margin-based batch method
 ---- Train model 1/10
----- Set best accuracy to 0.5798
+---- Set best accuracy to 0.5940
 ---- Train model 2/10
----- Set best accuracy to 0.5845
+---- Set best accuracy to 0.5972
 ---- Train model 3/10
 ---- Train model 4/10
+---- Set best accuracy to 0.6161
 ---- Train model 5/10
 ---- Train model 6/10
----- Set best accuracy to 0.8373
 ---- Train model 7/10
 ---- Train model 8/10
----- Set best accuracy to 0.9179
+---- Set best accuracy to 0.6209
 ---- Train model 9/10
----- Set best accuracy to 0.9653
+---- Set best accuracy to 0.6335
 ---- Train model 10/10
--- Complete multi-start with margin-based batch method with best accuracy 0.9653
+---- Set best accuracy to 0.9652
+-- Complete multi-start with margin-based batch method with best accuracy 0.9652
 -- Start multi-start with random batch method
 ---- Train model 1/10
----- Set best accuracy to 0.6003
+---- Set best accuracy to 0.5829
 ---- Train model 2/10
----- Set best accuracy to 0.8768
 ---- Train model 3/10
 ---- Train model 4/10
----- Set best accuracy to 0.8910
+---- Set best accuracy to 0.8231
 ---- Train model 5/10
+---- Set best accuracy to 0.9226
 ---- Train model 6/10
 ---- Train model 7/10
 ---- Train model 8/10
 ---- Train model 9/10
----- Set best accuracy to 0.9479
 ---- Train model 10/10
--- Complete multi-start with random batch method with best accuracy 0.9479
+-- Complete multi-start with random batch method with best accuracy 0.9226
 -- Start train with weights init by correlation and margin-based batch method
 -- Complete train with weights init by correlation and margin-based batch method with accuracy 0.8689
 -- Start train with weights init by correlation and random batch method
 -- Complete train with weights init by correlation and random batch method with accuracy 0.8705
-End Train pipeline in 1.90 sec, best accuracy: 0.9653
+End Train pipeline in 1.91 sec, best accuracy: 0.9652
+
+Best custom model evaluation of functionality (Q):
+-- Train Q: 0.0293
+-- Test Q: 0.0348
 
 Evaluating best custom model:
--- Accuracy: 0.9653
--- Precision: 0.9528
--- Recall: 0.9729
--- F1-Score: 0.9627
+-- Accuracy: 0.9652
+-- Precision: 0.9641
+-- Recall: 0.9699
+-- F1-Score: 0.9670
+
 Confusion Matrix:
                    Actual
                  Positive Negative
-Predict Positive      323       16
-        Negative        9      285
+Predict Positive      322       12
+        Negative       10      289
 
 Plotting metrics...
 
 Training and evaluating sklearn models for comparison...
 Train SKLearn models
--- Train LogisticRegression
--- LogisticRegression accuracy: 0.9763
--- Train SVC (Support Vector Machine Classifier)
--- SVC accuracy: 0.9668
-End training SKLearn models in 0.02 sec, best accuracy 0.9763
+-- Train LogisticRegression with SGD
+-- LogisticRegression accuracy: 0.8799
+-- Train SVC (Support Vector Machine Classifier) with SGD
+-- SVC accuracy: 0.9100
+End training SKLearn models in 0.01 sec, best accuracy 0.9100
 
 Evaluating best sklearn model:
--- Accuracy: 0.9763
--- Precision: 0.9907
--- Recall: 0.9639
--- F1-Score: 0.9771
+-- Accuracy: 0.9100
+-- Precision: 0.9508
+-- Recall: 0.8735
+-- F1-Score: 0.9105
+
 Confusion Matrix (sklearn):
                    Actual
                  Positive Negative
-Predict Positive      320        3
-        Negative       12      298
+Predict Positive      290       15
+        Negative       42      286

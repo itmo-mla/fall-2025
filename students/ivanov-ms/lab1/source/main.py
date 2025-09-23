@@ -12,6 +12,10 @@ def main():
         help='Mode to run: "full" (data and train), "data" (only data pipeline), or "train" (only training pipeline)'
     )
     parser.add_argument('--with-plotting', action='store_true', help='Enable plotting')
+    parser.add_argument(
+        '--loss', type=str, default="log_loss", choices=['binary', 'log_loss', 'sigmoid'],
+        help='Loss function to use: "binary", "log_loss", or "sigmoid"'
+    )
     parser.add_argument('--num-starts', type=int, default=10, help='Number of starts for multi-start training')
     parser.add_argument('--epochs', type=int, default=100, help='Number of epochs for training')
     parser.add_argument('--batch-size', type=int, default=32, help='Batch size for training')
@@ -45,14 +49,19 @@ def main():
 
     best_model, best_hist = train_pipeline(
         X_train, y_train, X_test, y_test,
+        loss=args.loss,
         num_starts=args.num_starts,
         epochs=args.epochs,
         batch_size=args.batch_size
     )
 
+    print("\nBest custom model evaluation of functionality (Q):")
+    print(f"-- Train Q: {best_hist[0][-1]:.4f}")
+    print(f"-- Test Q: {best_hist[1][-1]:.4f}")
+
     print("\nEvaluating best custom model:")
     conf_matrix = evaluate_model(best_model, X_test, y_test, log_prefix="-- ")
-    print("Confusion Matrix:")
+    print("\nConfusion Matrix:")
     print(conf_matrix)
 
     if args.with_plotting:
@@ -62,10 +71,10 @@ def main():
         plot_margins(best_model, X_test, y_test)
 
     print("\nTraining and evaluating sklearn models for comparison...")
-    sklearn_model = train_sklearn_models(X_train, y_train, X_test, y_test)
+    sklearn_model = train_sklearn_models(X_train, y_train, X_test, y_test, epochs=args.epochs)
     print("\nEvaluating best sklearn model:")
     conf_matrix_sklearn = evaluate_model(sklearn_model, X_test, y_test, log_prefix="-- ")
-    print("Confusion Matrix (sklearn):")
+    print("\nConfusion Matrix (sklearn):")
     print(conf_matrix_sklearn)
 
 

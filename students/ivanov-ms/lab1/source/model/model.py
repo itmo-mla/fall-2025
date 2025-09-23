@@ -1,8 +1,8 @@
-from typing import Optional, List
+from typing import Optional, Union, List
 import numpy as np
 
 from .batch_generator import BatchGenerator
-from .loss import BinaryLoss
+from .loss import LOSSES, BaseLoss
 from .regularization import L2Regularization
 from .optimizer import MomentumOptimizer
 
@@ -14,7 +14,7 @@ class LinearClassifier:
     def __init__(
             self, weights_init_method: str = "random", batch_method: str = 'margin',
             learning_rate: float = 1e-4, momentum_betta: float = 0.5,
-            l2_coef: Optional[float] = 1e-3, loss_lambda: float = 1e-3
+            l2_coef: Optional[float] = 1e-3, loss: Union[str, BaseLoss] = "log_loss", loss_lambda: float = 1e-3
     ):
         self.weights_init_method = LinearClassifier._validate_field(
             weights_init_method, self.WHEIGHT_INIT_METHODS, deafult="random"
@@ -25,7 +25,13 @@ class LinearClassifier:
 
         self.optimizer = MomentumOptimizer(learning_rate, momentum_betta)
         self.l2_reg = L2Regularization(l2_coef) if l2_coef is not None else None
-        self.loss = BinaryLoss(loss_lambda, self.l2_reg)
+
+        if isinstance(loss, str) and LOSSES.get(loss) is not None:
+            self.loss = LOSSES[loss](loss_lambda, self.l2_reg)
+        elif isinstance(loss, BaseLoss):
+            self.loss = loss
+        else:
+            raise ValueError("Loss should be string with loss name or loss object")
 
         self.weights = None
         self.bias = None
