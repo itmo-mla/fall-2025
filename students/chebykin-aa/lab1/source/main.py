@@ -2,15 +2,14 @@ import random
 import shutil
 import os
 
-from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score
+from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score, hinge_loss
 from sklearn.model_selection import train_test_split 
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib.ticker import MaxNLocator
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-from sklearn.svm import SVC
 import pandas as pd
 import numpy as np
 
@@ -35,6 +34,10 @@ def draw_margins_plot(
     threshold_high: float = 0.3
 ):
     """Метод для создания графика отступов на тренировочной/тестовой выборках"""
+    # Сортируем марджины по значениям
+    train_margins = np.sort(train_margins)
+    test_margins = np.sort(test_margins)
+
     # Получим индексы объектов в выборках
     train_idx = np.arange(len(train_margins))
     test_idx = np.arange(len(test_margins))
@@ -111,6 +114,7 @@ def calculate_metrics(
     precision = precision_score(labels, preds, average='weighted')
     recall = recall_score(labels, preds, average='weighted')
     accuracy = accuracy_score(labels, preds)
+    q = hinge_loss(labels, preds)
 
     metrics_str = (
         f"split: {split}\n"
@@ -118,6 +122,7 @@ def calculate_metrics(
         f"Precision: {precision:.4f}\n"
         f"Recall: {recall:.4f}\n"
         f"F1 Score: {f1:.4f}\n"
+        f"Q: {q:.4f}\n"
         f"\n"
     )
 
@@ -174,7 +179,7 @@ def main():
     print(f"X_test.shape: {X_test.shape}")
     print(f"y_test.shape: {y_test.shape}")
 
-    # Инициализируем собственные модели
+    # Инициализируем собственные модели с оптимизацией h
     custom_model1 = BinaryClassificator(
         init_type = "none",
         subsampling_type = "margin_abs",
@@ -183,6 +188,7 @@ def main():
         m = 3,
         momentum = 0.7,
         nesterov = True,
+        h_optimization = True,
         n_iters = 150
     )
 
@@ -194,6 +200,7 @@ def main():
         m = 3,
         momentum = 0.7,
         nesterov = True,
+        h_optimization = True,
         n_iters = 150
     )
 
@@ -205,6 +212,7 @@ def main():
         m = 3,
         momentum = 0.7,
         nesterov = True,
+        h_optimization = True,
         n_iters = 150
     )
 
@@ -216,6 +224,7 @@ def main():
         m = 3,
         momentum = 0.7,
         nesterov = True,
+        h_optimization = True,
         n_iters = 150
     )
 
@@ -226,49 +235,132 @@ def main():
         train_preds, train_labels = custom_model.predict(X_train)
         test_preds, test_labels = custom_model.predict(X_test)
         draw_margins_plot(
-            scaler.fit_transform((train_preds * y_train).reshape(-1, 1)).flatten(),
-            scaler.fit_transform((test_preds * y_test).reshape(-1, 1)).flatten(),
-            plot_path = f"{results_path}/own_binclf{idx+1}_margins.png"
+            (train_preds * y_train),
+            (test_preds * y_test),
+            plot_path = f"{results_path}/own_binclf{idx+1}_with_h_opt_margins.png"
         )
         draw_train_stats(
             loss_values,
             q_values,
             lr_values,
-            plot_path = f"{results_path}/own_binclf{idx+1}_train_stats.png"
+            plot_path = f"{results_path}/own_binclf{idx+1}_with_h_opt_train_stats.png"
         )
         calculate_metrics(
             train_labels,
             y_train,
             split = "train",
-            file_path = f"{results_path}/own_binclf{idx+1}_metrics.txt"
+            file_path = f"{results_path}/own_binclf{idx+1}_with_h_opt_metrics.txt"
         )
         calculate_metrics(
             test_labels,
             y_test,
             split = "test",
-            file_path = f"{results_path}/own_binclf{idx+1}_metrics.txt"
+            file_path = f"{results_path}/own_binclf{idx+1}_with_h_opt_metrics.txt"
+        )
+
+    # Инициализируем собственные модели без оптимизации h
+    custom_model1 = BinaryClassificator(
+        init_type = "none",
+        subsampling_type = "margin_abs",
+        lr = 1e-4,
+        reg_coef = 0.3,
+        m = 3,
+        momentum = 0.7,
+        nesterov = True,
+        h_optimization = False,
+        n_iters = 150
+    )
+
+    custom_model2 = BinaryClassificator(
+        init_type = "corr",
+        subsampling_type = "margin_abs",
+        lr = 1e-4,
+        reg_coef = 0.3,
+        m = 3,
+        momentum = 0.7,
+        nesterov = True,
+        h_optimization = False,
+        n_iters = 150
+    )
+
+    custom_model3 = BinaryClassificator(
+        init_type = "multi_start",
+        subsampling_type = "margin_abs",
+        lr = 1e-4,
+        reg_coef = 0.3,
+        m = 3,
+        momentum = 0.7,
+        nesterov = True,
+        h_optimization = False,
+        n_iters = 150
+    )
+
+    custom_model4 = BinaryClassificator(
+        init_type = "multi_start",
+        subsampling_type = "random",
+        lr = 1e-4,
+        reg_coef = 0.3,
+        m = 3,
+        momentum = 0.7,
+        nesterov = True,
+        h_optimization = False,
+        n_iters = 150
+    )
+
+    # Обучаем и тестируем их
+    for idx, custom_model in enumerate([custom_model1, custom_model2, custom_model3, custom_model4]):
+        custom_model.fit(X_train, y_train)
+        loss_values, q_values, lr_values = custom_model.get_train_info()
+        train_preds, train_labels = custom_model.predict(X_train)
+        test_preds, test_labels = custom_model.predict(X_test)
+        draw_margins_plot(
+            (train_preds * y_train),
+            (test_preds * y_test),
+            plot_path = f"{results_path}/own_binclf{idx+1}_without_h_opt_margins.png"
+        )
+        draw_train_stats(
+            loss_values,
+            q_values,
+            lr_values,
+            plot_path = f"{results_path}/own_binclf{idx+1}_without_h_opt_train_stats.png"
+        )
+        calculate_metrics(
+            train_labels,
+            y_train,
+            split = "train",
+            file_path = f"{results_path}/own_binclf{idx+1}_without_h_opt_metrics.txt"
+        )
+        calculate_metrics(
+            test_labels,
+            y_test,
+            split = "test",
+            file_path = f"{results_path}/own_binclf{idx+1}_without_h_opt_metrics.txt"
         )
 
     # Обучим и протестируем модели из библиотеки sklearn
-    svm = SVC(
-        kernel = "linear",
-        C = 0.3,
-        max_iter = 150,
-        random_state = seed
+    svm = SGDClassifier(
+        loss="hinge",
+        penalty="l2",
+        eta0=1e-4,
+        learning_rate="constant",
+        max_iter=150,
+        tol=1e-3
     )
-    log_reg = LogisticRegression(
-        penalty = "l2",
-        C = 0.3,
-        max_iter = 150,
-        random_state = seed
+    log_reg = SGDClassifier(
+        loss="log_loss", 
+        penalty="l2",
+        eta0=1e-4,
+        learning_rate="constant",
+        max_iter=150,
+        tol=1e-3
     )
     for name, model in zip(["svm", "logreg"], [svm, log_reg]):
         model.fit(X_train, y_train)
         train_preds, train_labels = model.decision_function(X_train), model.predict(X_train)
         test_preds, test_labels = model.decision_function(X_test), model.predict(X_test)
         draw_margins_plot(
-            scaler.fit_transform((train_preds * y_train).reshape(-1, 1)).flatten(),
-            scaler.fit_transform((test_preds * y_test).reshape(-1, 1)).flatten(),
+           (train_preds * y_train),
+           (test_preds * y_test),
             plot_path = f"{results_path}/{name}_margins.png"
         )
         calculate_metrics(

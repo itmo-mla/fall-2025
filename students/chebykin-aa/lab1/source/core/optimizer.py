@@ -16,6 +16,7 @@ class SGD():
         m: int = 3,
         momentum: float = 0.0,
         nesterov: bool = False,
+        h_optimization = True,
         batch_size: int = 4,
         n_iters: int = 100
     ):
@@ -26,6 +27,7 @@ class SGD():
         self.lmbda = 1. / m
         self.momentum = momentum
         self.nesterov = nesterov
+        self.h_optimization = h_optimization
         self.batch_size = batch_size
         self.n_iters = n_iters
         self.eps = 1e-9
@@ -117,12 +119,13 @@ class SGD():
             model_w -= self.lr * batch_grad
             q = self.lmbda * batch_loss + (1 - self.lmbda) * q
             # Найдем оптимальный learning rate
-            lr_candidates = []
-            for x_i, y_i in zip(X_sub, y_sub):
-                lr_star = self.loss.get_optimal_h(x_i, model_w, y_i)
-                if lr_star > 0:
-                    lr_candidates.append(lr_star)
-            self.lr = min(lr_candidates) if lr_candidates else 0.0
+            if self.h_optimization:
+                lr_candidates = []
+                for x_i, y_i in zip(X_sub, y_sub):
+                    lr_star = self.loss.get_optimal_h(x_i, model_w, y_i)
+                    if lr_star > 0:
+                        lr_candidates.append(lr_star)
+                self.lr = min(lr_candidates) if lr_candidates else 0.0
 
             # Сохраним значения отступов, лосса, learning rate, функционала при обучении
             self.loss_values[str(iter_idx+1)] = batch_loss

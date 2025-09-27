@@ -78,21 +78,25 @@ custom_model1 = BinaryClassificator(
 ```
 Ниже представлены графики изменения функции потерь, эмпирического риска и шага обучения:
 
-![alt text](./source/results/own_binclf1_train_stats.png)
+![alt text](./source/results/own_binclf1_without_h_opt_train_stats.png)
+
+![alt text](./source/results/own_binclf1_with_h_opt_train_stats.png)
 
 Графики имеют скачкообразный вид, что говорит о нестабильном процессе обучения.
 
 Ниже представлены графики отступов на тренировочной/тестовой выборках:
 
-![alt text](./source/results/own_binclf1_margins.png)
+![alt text](./source/results/own_binclf1_without_h_opt_margins.png)
+
+![alt text](./source/results/own_binclf1_with_h_opt_margins.png)
 
 Модель в целом уверена в своих предсказаниях, но есть довольно большие пики с отрицательным отступом, что говорит о том, что модель не может определить класс объекта. Несмотря на все вышеописанные недостатки, качество предсказаний модели довольно высокое.
 
 Метрики качества работы данной модели:
-| split | Accuracy | Precision | Recall | F1 Score |
-|------|------|------|------|------|
-| train | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
-| test | 0.8509 | 0.8804 | 0.8509 | 0.8417 |
+| split | Accuracy | Precision | Recall | F1 Score | Q |
+|------|------|------|------|------|------|
+| train | 0.8857 | 0.9032 | 0.8857 | 0.8799 | 0.2286 |
+| test | 0.8509 | 0.8804 | 0.8509 | 0.8417 | 0.2982 |
 
 ## 5. Обучение и тестирование второй модели
 Параметры обучения модели:
@@ -110,21 +114,23 @@ custom_model2 = BinaryClassificator(
 ```
 Ниже представлены графики изменения функции потерь, эмпирического риска и шага обучения:
 
-![alt text](./source/results/own_binclf2_train_stats.png)
+![alt text](./source/results/own_binclf2_without_h_opt_train_stats.png)
+![alt text](./source/results/own_binclf2_with_h_opt_train_stats.png)
 
 По графикам видно, что начальная инициализация весов была очень удачная, так как мы сразу оказались рядом с хорошим локальным минимумом.
 
 Ниже представлены графики отступов на тренировочной/тестовой выборках:
 
-![alt text](./source/results/own_binclf2_margins.png)
+![alt text](./source/results/own_binclf2_without_h_opt_margins.png)
+![alt text](./source/results/own_binclf2_with_h_opt_margins.png)
 
 Данная модель еще больше уверена в предсказаниях чем предыдущая. Метрики также выше чем у предыдущей модели.
 
 Метрики качества работы данной модели:
-| split | Accuracy | Precision | Recall | F1 Score |
-|------|------|------|------|------|
-| train | 0.9143 | 0.9245 | 0.9143 | 0.9113 |
-| test | 0.8684 | 0.8919 | 0.8684 | 0.8617 |
+| split | Accuracy | Precision | Recall | F1 Score | Q |
+|------|------|------|------|------|------|
+| train | 0.9143 | 0.9245 | 0.9143 | 0.9113 | 0.1714 |
+| test | 0.8684 | 0.8919 | 0.8684 | 0.8617 | 0.2632 |
 
 ## 6. Обучение и тестирование третьей модели
 Параметры обучения модели:
@@ -142,21 +148,23 @@ custom_model3 = BinaryClassificator(
 ```
 Ниже представлены графики изменения функции потерь, эмпирического риска и шага обучения:
 
-![alt text](./source/results/own_binclf3_train_stats.png)
+![alt text](./source/results/own_binclf3_without_h_opt_train_stats.png)
+![alt text](./source/results/own_binclf3_with_h_opt_train_stats.png)
 
 Данная модель также не успела сойтись, так как график лосса скачкообразный.
 
 Ниже представлены графики отступов на тренировочной/тестовой выборках:
 
-![alt text](./source/results/own_binclf3_margins.png)
+![alt text](./source/results/own_binclf3_without_h_opt_margins.png)
+![alt text](./source/results/own_binclf3_with_h_opt_margins.png)
 
 Уверенность предсказаний и метрики данной модели находится примерно на том же уровне, что и у предыдущих.
 
 Метрики качества работы данной модели:
-| split | Accuracy | Precision | Recall | F1 Score |
-|------|------|------|------|------|
-| train | 0.9187 | 0.9279 | 0.9187 | 0.9161 |
-| test | 0.8684 | 0.8919 | 0.8684 | 0.8617 |
+| split | Accuracy | Precision | Recall | F1 Score | Q |
+|------|------|------|------|------|------|
+| train | 0.9187 | 0.9279 | 0.9187 | 0.9161 | 0.1626 |
+| test | 0.8684 | 0.8919 | 0.8684 | 0.8617 | 0.2632 |
 
 ## 7. Обучение и тестирование четвертой модели
 Параметры обучения модели:
@@ -174,21 +182,23 @@ custom_model4 = BinaryClassificator(
 ```
 Ниже представлены графики изменения функции потерь, эмпирического риска и шага обучения:
 
-![alt text](./source/results/own_binclf4_train_stats.png)
+![alt text](./source/results/own_binclf4_without_h_opt_train_stats.png)
+![alt text](./source/results/own_binclf4_with_h_opt_train_stats.png)
 
 Графики изменения лосса и эмпирического риска также выглядит скачкообразно, что говорит о слишком большом шаге обучения.
 
 Ниже представлены графики отступов на тренировочной/тестовой выборках:
 
-![alt text](./source/results/own_binclf4_margins.png)
+![alt text](./source/results/own_binclf4_without_h_opt_margins.png)
+![alt text](./source/results/own_binclf4_with_h_opt_margins.png)
 
 По уверенности предсказаний модель ничем не отличается от предыдущих, хотя по метрикам есть небольшой прирост в 1-2%.
 
 Метрики качества работы данной модели:
-| split | Accuracy | Precision | Recall | F1 Score |
-|------|------|------|------|------|
-| train | 0.9253 | 0.9332 | 0.9253 | 0.9231 |
-| test | 0.8860 | 0.9040 | 0.8860 | 0.8812 |
+| split | Accuracy | Precision | Recall | F1 Score | Q |
+|------|------|------|------|------|------|
+| train | 0.9253 | 0.9332 | 0.9253 | 0.9231 | 0.1495 |
+| test | 0.8860 | 0.9040 | 0.8860 | 0.8812 | 0.2281 |
 
 ## 8. Обучение и тестирование моделей из библиотеки sklearn
 
@@ -202,11 +212,11 @@ custom_model4 = BinaryClassificator(
 
 Из данных графиков видно, что модели из sklearn значительно меньше уверены в своих предсказаниях, чем мои модели. По метрикам ситуация выглядит иначе: SVC и LogisticRegression показывают чуть лучший результат чем мои модели.
 
-| Split | Model                  | Accuracy | Precision | Recall | F1 Score |
-| ----- | ---------------------- | -------- | --------- | ------ | -------- |
-| Train | **SVC**                | 0.9802   | 0.9805    | 0.9802 | 0.9801   |
-|       | **LogisticRegression** | 0.9736   | 0.9743    | 0.9736 | 0.9734   |
-| Test  | **SVC**                | 0.9298   | 0.9371    | 0.9298 | 0.9283   |
-|       | **LogisticRegression** | 0.9211   | 0.9302    | 0.9211 | 0.9191   |
+| Split | Model                  | Accuracy | Precision | Recall | F1 Score | Q |
+| ----- | ---------------------- | -------- | --------- | ------ | -------- | -------- |
+| Train | **SVC**                | 0.9802   | 0.9805    | 0.9802 | 0.9801   | 0.1055 |
+|       | **LogisticRegression** | 0.9736   | 0.9743    | 0.9736 | 0.9734   | 0.2066 |
+| Test  | **SVC**                | 0.9298   | 0.9371    | 0.9298 | 0.9283   | 0.2105 |
+|       | **LogisticRegression** | 0.9211   | 0.9302    | 0.9211 | 0.9191   | 0.2982 |
 
 Подобная ситуация может говорить о том, что для линейных моделей объекты в reast cancer Wisconsin dataset являются трудноразличимыми, так как даже модели из sklearn имеют в основном отступ ниже нуля.

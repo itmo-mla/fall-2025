@@ -14,6 +14,7 @@ class BinaryClassificator():
         m: int = 3,
         momentum: float = 0.0,
         nesterov: bool = False,
+        h_optimization = True,
         batch_size: int = 4,
         n_iters: int = 100
     ):
@@ -54,7 +55,8 @@ class BinaryClassificator():
             "momentum": momentum,
             "nesterov": nesterov,
             "batch_size": batch_size,
-            "n_iters": n_iters
+            "n_iters": n_iters,
+            "h_optimization": h_optimization
         }
         if optimizer_type == "SGD":
             self.optimizer = SGD(**optimizer_params)
