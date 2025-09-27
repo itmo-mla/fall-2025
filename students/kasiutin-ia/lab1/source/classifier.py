@@ -142,7 +142,7 @@ class LinearClassifier:
         weights_init_method: str = "random",
         batch_generation: str = "random",
         n_attempts: int = None
-    ) -> None:
+    ) -> list[float]:
         self._init_weights(X_train.shape[-1], weights_init_method, X_train, y_train, n_attempts)
         self._init_Q(X_train, y_train)
 
@@ -150,6 +150,8 @@ class LinearClassifier:
 
         print(f"Initial weights: {self.weights}")
         print(f"Initial Q: {self.Q}")
+
+        Q = []
 
         for iter in range(n_iters):
             print(f"Iteration {iter + 1}")
@@ -187,9 +189,12 @@ class LinearClassifier:
             if np.abs(new_Q - current_Q) / new_Q < stop_threshold or new_Q > current_Q:
                 print("Early stopping by Q")
                 break
+            Q.append(new_Q)
 
         print(f"Final weights: {self.weights=}")
         print(f"Final Q: {self._get_current_Q()=}")
+        return Q
+
 
     def run_multistart(
         self,
