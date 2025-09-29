@@ -192,7 +192,7 @@ class LinearClassifier:
             Q.append(new_Q)
 
         print(f"Final weights: {self.weights=}")
-        print(f"Final Q: {self._get_current_Q()=}")
+        print(f"Final Q: {self._calculate_accurate_Q(X_train, y_train)=}")
         return Q
 
 
