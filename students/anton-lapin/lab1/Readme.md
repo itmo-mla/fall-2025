@@ -11,9 +11,12 @@
 Это говоит о том, что модель подстраивается под доминирующий класс и педсказывает в основном его, игнорируя отрицательный класс.
 
 Посмотим на графики отступов объектов.
-<img width="518" height="392" alt="рандомные семплы" src="https://github.com/user-attachments/assets/5b69c8b6-6803-4838-b30f-96767e23ffb9" />
+
+<img width="500" height="400" alt="рандомные семплы" src="https://github.com/user-attachments/assets/5b69c8b6-6803-4838-b30f-96767e23ffb9" />
+
 рандомные семплы
 
-<img width="685" height="516" alt="выбор сэмплов по модулю отступа" src="https://github.com/user-attachments/assets/078ea912-4e58-453f-82bc-7fc35e7d559c" />
+<img width="500" height="400" alt="выбор сэмплов по модулю отступа" src="https://github.com/user-attachments/assets/078ea912-4e58-453f-82bc-7fc35e7d559c" />
+
 Семплы по модулю отступа
 
