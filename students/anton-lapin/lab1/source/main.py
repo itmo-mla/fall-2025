@@ -226,8 +226,43 @@ y_train = y[train_indices]
 y_test = y[test_indices]
 
 #h - темп обучения l2 - регуляризация # l - для функционала качества (темп забывания)  # l3 - коэффициент в моментум
-w, b = SGD(X_train, y_train, X_test, y_test, 0.001, 0.9, 0.1, 0.9, 1000, 50, 'margin', 'correlation')
+w, b = SGD(X_train, y_train, X_test, y_test, 0.001, 0.9, 0.1, 0.9, 1000, 10, 'random', 'random')
+print("По самореализованной линейной регрессии")
 qualitty_control(X_test, w, b, y_test, True)
+
+
+
+
+from sklearn.linear_model import SGDRegressor
+
+learning_rate = 0.001
+momentum = 0.9
+l1_ratio = 0.1
+dampening = 0.9
+batch_size = 10
+
+model = SGDRegressor(
+    loss='squared_error',
+    penalty='elasticnet',
+    alpha=l1_ratio,
+    l1_ratio=0.9,
+    learning_rate='constant',
+    eta0=learning_rate,
+    power_t=0.1,
+    early_stopping=False,
+    epsilon = dampening,
+    max_iter=1000,
+    random_state=None,
+    warm_start=False,
+    average=False
+    )
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+print("По модели sklearn")
+count_metrics(y_pred, y_test, True)
+
+
 
 
 
@@ -256,7 +291,7 @@ def count_logistic_loss(y_hat, y):
     return cost
 
 def count_metrics_logistic(pred, real, viz):
-        pred = (pred - 1) * 2
+        pred = (pred * 2) - 1
         tp = 0
         fp = 0
         tn = 0
@@ -275,20 +310,25 @@ def count_metrics_logistic(pred, real, viz):
         recall =  tp / (tp + fn)
         f1_score = 2 * recall * precision / (recall + precision)
         if viz == True:
-                print("Метрики подхода с лог регессией")
                 print("accuracy:  ", accuracy)
                 print("precision: ", precision)
                 print("recall:    ", recall)
                 print("f1_score:  ", f1_score)
         return accuracy
 
+def count_margin_logistic(X, w, b, y):
+        targets = predict_logistic(X, w, b)
+        targets = (targets * 2) - 1
+        y = np.where(y == 0, -1, y)
+        margins = targets * y
+        return margins
 def qualitty_control_logistic(X, w, b, y, viz):
-        pred = predict(X, w, b)
+        pred = predict_logistic(X, w, b)
         accuracy = count_metrics_logistic(pred, y, viz)
 
-        #margins = count_margin(X, w, b, y)
-        #if viz == True:
-        #        visualization.visualize_margins_simple(np.sort(margins))
+        margins = count_margin_logistic(X, w, b, y)
+        if viz == True:
+                visualization.visualize_margins_simple(np.sort(margins))
 
         return accuracy
 
@@ -361,5 +401,30 @@ def SGD_logistic(X, y, X_test, y_test, h, l, l2, l3, iterations, size_of_suddenl
                 #print(train_loss)
         return best_w, best_b
 
-w, b = SGD_logistic(X_train, y_train, X_test, y_test, 0.001, 0.9, 0.1, 0.9, 1000, 50, 'random', 'random')
+y_test = np.where(y_test == -1, 0, y_test)
+y_train = np.where(y_train == -1, 0, y_train)
+
+print("По самореализованной логистической регрессии")
+w, b = SGD_logistic(X_train, y_train, X_test, y_test, 0.001, 0.9, 0.1, 0.9, 1000, 10, 'margin', 'correlation')
 qualitty_control_logistic(X_test, w, b, y_test, True)
+
+from sklearn.linear_model import SGDClassifier
+learning_rate = 0.001
+alpha = 0.1
+l1_ratio = 0.9
+max_iter = 1000
+
+sgd_logreg = SGDClassifier(loss='log_loss',
+                          penalty='elasticnet',
+                          alpha=alpha,
+                          l1_ratio = l1_ratio,
+                          learning_rate='constant',
+                          eta0=learning_rate,
+                          max_iter=max_iter,
+                          random_state=42,
+                          shuffle=True)
+
+sgd_logreg.fit(X_train, y_train)
+y_pred = sgd_logreg.predict(X_test)
+print("Метрики log регрессии из sklearn")
+count_metrics_logistic(y_pred, y_test, True)
