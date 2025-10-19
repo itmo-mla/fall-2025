@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import accuracy_score
+from utils import accuracy_score
 class LOO:
     def __init__(self, metric="accuracy"):
         self.metric = accuracy_score
@@ -18,6 +18,6 @@ class LOO:
             model.fit(x_train, y_train)
 
             y_pred = model.predict(x_test)
-            ans.append(self.metric(y_true=y_test, y_pred=y_pred))
+            ans.append(1 - self.metric(y_true=y_test, y_pred=y_pred))
         ans = np.array(ans)
         return ans.mean(), ans.std()

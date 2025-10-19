@@ -1,15 +1,14 @@
 import numpy as np
 class KNN:
-    def __init__(self, kernel="gauss", k=3):
+    def __init__(self, k=3):
         self.X = None
         self.Y = None
         self.unique_y = None
         self.k = k
-
-        # self.kernel = np.vectorize(lambda x: np.exp(-2 * x ** 2))
         self.kernel = np.vectorize(lambda x: abs(x) < 1)
 
-    def ro(self, x, x_i, p=2):
+    @staticmethod
+    def ro(x, x_i, p=2):
         return np.sum((x - x_i) ** p) ** (1 / p)
 
     def fit(self, x, y):
