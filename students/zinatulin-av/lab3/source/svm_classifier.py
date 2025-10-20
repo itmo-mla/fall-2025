@@ -51,8 +51,6 @@ class SVMClassifier:
         n_samples = X.shape[0]
         self._y_constraint = y
         
-        X_with_bias = np.hstack([X, np.ones((X.shape[0], 1))])
-        
         initial_alpha = np.zeros(n_samples)
         constraints = {'type': 'eq', 'fun': self._constraints}
         bounds = [(0, self.C) for _ in range(n_samples)]
@@ -60,7 +58,7 @@ class SVMClassifier:
         result = minimize(
             self._objective, 
             initial_alpha, 
-            args=(X_with_bias, y),
+            args=(X, y),
             method='SLSQP',
             bounds=bounds,
             constraints=constraints,
@@ -69,7 +67,7 @@ class SVMClassifier:
         
         support_vector_mask = result.x > self.threshold
         
-        self.support_vectors = X_with_bias[support_vector_mask]
+        self.support_vectors = X[support_vector_mask]
         self.support_vector_labels = y[support_vector_mask]
         self.lambdas = result.x[support_vector_mask]
         
@@ -80,8 +78,7 @@ class SVMClassifier:
         )
     
     def predict(self, X):
-        X_with_bias = np.hstack([X, np.ones((X.shape[0], 1))])
-        K = self.kernel.compute(self.support_vectors, X_with_bias)
+        K = self.kernel.compute(self.support_vectors, X)
         decision_values = np.sum(
             self.lambdas[:, np.newaxis] * 
             self.support_vector_labels[:, np.newaxis] * 
