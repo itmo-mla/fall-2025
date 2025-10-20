@@ -2,9 +2,6 @@ import numpy as np
 
 
 def compute_distance_matrix(X):
-    """
-    Вычисление матрицы попарных расстояний между всеми объектами
-    """
     n_samples = X.shape[0]
     distances = np.zeros((n_samples, n_samples))
 
@@ -18,23 +15,20 @@ def compute_distance_matrix(X):
 
 
 def find_k_neighbors(distances, k, exclude_self=True):
-    """
-    Нахождение k ближайших соседей для каждого объекта
-    """
     n_samples = distances.shape[0]
     indices = np.zeros((n_samples, k), dtype=int)
 
     for i in range(n_samples):
-        # Получаем расстояния от i-го объекта до всех остальных
+        # Obtain the distances from the i-th object to all the others
         row_distances = distances[i].copy()
 
         if exclude_self:
-            # Исключаем сам объект (расстояние до себя = 0)
+            # Exclude the object itself (set distance to itself = inf)
             row_distances[i] = np.inf
 
-        # Находим индексы k ближайших соседей
+        # Find the indices of the k nearest neighbors
         neighbor_indices = np.argpartition(row_distances, k)[:k]
-        # Сортируем по расстоянию
+        # Sort by distances
         sorted_neighbors = neighbor_indices[np.argsort(row_distances[neighbor_indices])]
         indices[i] = sorted_neighbors
 
@@ -42,30 +36,28 @@ def find_k_neighbors(distances, k, exclude_self=True):
 
 
 def find_neighbors_in_subset(distances, subset_indices, k, exclude_self=True):
-    """
-    Нахождение k ближайших соседей в подмножестве объектов
-    """
     n_samples = distances.shape[0]
     n_subset = len(subset_indices)
 
-    if n_subset <= k:  # Can't find k neighbors in subset with k elements or less
+    # Can't find k neighbors in subset with k elements or less
+    if n_subset <= k:
         return np.array([]), np.array([])
 
     indices = np.zeros((n_samples, k), dtype=int)
     neighbor_distances = np.zeros((n_samples, min(k, n_subset)))
 
     for i in range(n_samples):
-        # Расстояния только до объектов в подмножестве
+        # Distances to objects in a subset only
         subset_dists = distances[i, subset_indices]
 
         if exclude_self and i in subset_indices:
             subset_dists[subset_indices.index(i)] = np.inf
 
-        # Находим k ближайших соседей в подмножестве
+        # Find the indices of the k nearest neighbors
         neighbor_indices = np.argpartition(subset_dists, k)[:k]
         sorted_idx = neighbor_indices[np.argsort(subset_dists[neighbor_indices])]
-        # Сохраняем индексы (в глобальной нумерации) и расстояния
+        # Save original indexes and neighbors distances
         indices[i] = [subset_indices[idx] for idx in sorted_idx]
         neighbor_distances[i] = subset_dists[sorted_idx]
 
-    return indices, neighbor_distances
+    return indices

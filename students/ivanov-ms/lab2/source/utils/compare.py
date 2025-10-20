@@ -14,8 +14,6 @@ def compare_with_sklearn(
     X_train: np.ndarray, X_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray, best_k: int,
     X_prototypes: Optional[np.ndarray] = None, y_prototypes: Optional[np.ndarray] = None
 ):
-    """Сравнение нашей реализации с sklearn"""
-
     eval_models = {
         "Our KNN": ParzenWindowKNN(k=best_k).fit(X_train, y_train),
         "Sklearn KNN": KNeighborsClassifier(n_neighbors=best_k).fit(X_train, y_train)
@@ -39,18 +37,18 @@ def compare_with_sklearn(
         data=metrics_data,
         columns=["Method", "Test size", "Accuracy", "Precision", "Recall", "F1"]
     )
-    print("\nСравнение качества:")
+    print("\nMetrics comparison:")
     print(metrics_df)
 
-    # Сравнение предсказаний
-    agreement_matrix = []
+    # Comparison of predictions
+    coincidence_matrix = []
     for name1, preds1 in predictions.items():
-        agreement_matrix.append([])
+        coincidence_matrix.append([])
         for name2, preds2 in predictions.items():
-            agreement_acc = np.mean(preds1 == preds2)
-            agreement_matrix[-1].append(agreement_acc)
+            coincidence_acc = np.mean(preds1 == preds2)
+            coincidence_matrix[-1].append(coincidence_acc)
 
-    agreement_df = pd.DataFrame(agreement_matrix, index=list(predictions), columns=list(predictions))
+    coincidence_df = pd.DataFrame(coincidence_matrix, index=list(predictions), columns=list(predictions))
 
-    print(f'\nСовпадение предсказаний:')
-    print(agreement_df)
+    print(f'\nCoincidence of predictions:')
+    print(coincidence_df)

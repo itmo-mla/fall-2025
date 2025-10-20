@@ -30,29 +30,29 @@ class ParzenWindowKNN:
     def predict(self, X):
         predictions = []
         for x in X:
-            # Вычисляем расстояния до всех точек обучающей выборки
+            # Calculate the distances to all points of the training data
             distances = np.sqrt(np.sum((self.X_train - x) ** 2, axis=1))
 
-            # Находим k ближайших соседей
+            # Find k nearest neighbors
             k_indices = np.argpartition(distances, self.k)[:self.k]
             k_distances = distances[k_indices]
             k_labels = self.y_train[k_indices]
 
-            # Используем расстояние до k-го соседа как ширину окна
+            # Use the distance to the k-th neighbor as the window width
             sigma = k_distances[-1] if len(k_distances) > 0 else 1.0
             if sigma == 0:  # Избегаем деления на ноль
                 sigma = 1e-8
 
-            # Вычисляем веса с помощью ядра
+            # Calculating weights using a kernel
             weights = self.kernel(k_distances / sigma)
 
-            # Взвешенное голосование
+            # Weighted voting
             class_weights = {}
             for label, weight in zip(k_labels, weights):
                 class_weights[label] = class_weights.get(label, 0) + weight
 
-            # Выбираем класс с максимальным весом
-            predicted_class = max(class_weights.items(), key=lambda x: x[1])[0]
+            # Select class with the maximum weight
+            predicted_class = max(class_weights.items(), key=lambda w: w[1])[0]
             predictions.append(predicted_class)
 
         return np.array(predictions)

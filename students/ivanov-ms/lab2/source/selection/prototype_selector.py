@@ -24,26 +24,26 @@ class PrototypeSelector:
         self.profile_calc.fit(X, y)
         self.distances = self.profile_calc.distances
 
-        # Инициализация: по одному объекту от каждого класса
+        # Initialization: one object from each class
         self._initialize_prototypes()
 
-        # Вычисляем начальный CCV
+        # Computing the initial CCV
         current_ccv = self.profile_calc.compute_ccv(self.omega_indices, self.k)
 
-        print("\nНачало отбора эталонов:")
-        print(f"Инициализация: |Ω| = {len(self.omega_indices)}, CCV = {current_ccv:.4f}")
+        print("\nStart of prototype selection:")
+        print(f"Initialization: |Ω| = {len(self.omega_indices)}, CCV = {current_ccv:.4f}")
 
         iteration = 0
         ccv_history = [current_ccv]
         omega_sizes = [len(self.omega_indices)]
 
-        # Жадное добавление с использованием профиля компактности
+        # Greedy prototype addition strategy
         while len(self.omega_indices) < self.L:
             iteration += 1
             best_candidate = None
             best_ccv = current_ccv
 
-            # Находим кандидатов для добавления
+            # Looking for candidates to add
             candidates = self._find_promising_candidates()
 
             for candidate in candidates:
@@ -60,12 +60,12 @@ class PrototypeSelector:
                 omega_sizes.append(len(self.omega_indices))
 
                 print(
-                    f"Итерация {iteration}: добавлен объект {best_candidate}, "
+                    f"Iteration {iteration}: added object {best_candidate}, "
                     f"|Ω| = {len(self.omega_indices)}, CCV = {current_ccv:.4f}"
                 )
             else:
-                print(f"Остановка на итерации {iteration}: улучшений не найдено")
-                print(f"Итоговый |Ω| = {len(self.omega_indices)}, CCV = {current_ccv:.4f}")
+                print(f"Stopping at iteration {iteration}: no improvements found")
+                print(f"Final |Ω| = {len(self.omega_indices)}, CCV = {current_ccv:.4f}")
                 break
 
         self.history = {
@@ -76,14 +76,13 @@ class PrototypeSelector:
         return self
 
     def _initialize_prototypes(self):
-        """Инициализация: по одному объекту от каждого класса"""
         unique_classes = np.unique(self.y)
         self.omega_indices = []
 
         for cls in unique_classes:
             class_indices = np.where(self.y == cls)[0]
             if len(class_indices) > 0:
-                # Выбираем объект, наиболее близкий к центроиду класса
+                # Select the object closest to the class centroid
                 centroid = np.mean(self.X[class_indices], axis=0)
                 distances_to_centroid = [np.linalg.norm(self.X[i] - centroid) for i in class_indices]
                 best_idx = class_indices[np.argmin(distances_to_centroid)]
@@ -92,33 +91,32 @@ class PrototypeSelector:
         return self.omega_indices
 
     def _find_promising_candidates(self, n_candidates=20):
-        """Нахождение перспективных кандидатов для добавления"""
         candidates = np.array([i for i in range(self.L) if i not in self.omega_indices])
 
         if len(candidates) <= n_candidates:
             return candidates
 
-        # Оцениваем "полезность" каждого кандидата
+        # Evaluate the "improvement" of each candidate
         candidate_scores = np.zeros_like(candidates)
 
         for i, candidate in enumerate(candidates):
-            # Быстрая оценка: смотрим, сколько объектов будут лучше классифицированы
+            # Quick estimation: check how many objects will be classified better
             improvement = self._estimate_improvement(candidate)
+            # Save it with a negative sign for easy sorting
             candidate_scores[i] = -improvement
 
-        # Лучшие по полезности
+        # Choose the best in terms of "improvement"
         candidates_order_idx = np.argpartition(candidate_scores, n_candidates)[:n_candidates]
         sorted_candidates_idx = candidates_order_idx[np.argsort(candidate_scores[candidates_order_idx])]
         return candidates[sorted_candidates_idx]
 
     def _estimate_improvement(self, candidate):
-        """Быстрая оценка улучшения от добавления кандидата"""
         improvement = 0
 
-        # Находим соседей в текущем множестве
-        current_neighbors, _ = find_neighbors_in_subset(self.distances, self.omega_indices, 1, exclude_self=True)
+        # Find neighbors in the current subset
+        current_neighbors = find_neighbors_in_subset(self.distances, self.omega_indices, 1, exclude_self=True)
 
-        # Находим, для каких объектов кандидат станет ближайшим соседом
+        # Find for which objects the candidate will become the nearest neighbor
         for i in range(self.L):
             if i == candidate:
                 continue
@@ -126,17 +124,18 @@ class PrototypeSelector:
             dist_to_candidate = self.distances[i, candidate]
             candidate_class = self.y[candidate]
 
-            # Проверяем, станет ли кандидат ближе, чем текущие соседи
-            if current_neighbors.shape[1] > 0:
-                current_neighbor_idx = current_neighbors[i, 0]
-                current_neighbor_dist = self.distances[i, current_neighbor_idx]
-                current_neighbor_class = self.y[current_neighbor_idx]
-                if dist_to_candidate < current_neighbor_dist and candidate_class != current_neighbor_class:
-                    # Если кандидат правильного класса, это улучшение
-                    if candidate_class == self.y[i]:
-                        improvement += 1
-                    elif current_neighbor_class == self.y[i]:
-                        improvement -= 1
+            # Check if the candidate will be closer than current neighbors
+            current_neighbor_idx = current_neighbors[i, 0]
+            current_neighbor_dist = self.distances[i, current_neighbor_idx]
+            current_neighbor_class = self.y[current_neighbor_idx]
+            if dist_to_candidate < current_neighbor_dist and candidate_class != current_neighbor_class:
+                # If the candidate is of the right class, this is an improvement
+                if candidate_class == self.y[i]:
+                    improvement += 1
+                # If the current neighbor was of the right class and the candidate was of the wrong class,
+                # then this is a deterioration
+                elif current_neighbor_class == self.y[i]:
+                    improvement -= 1
 
         return improvement
 

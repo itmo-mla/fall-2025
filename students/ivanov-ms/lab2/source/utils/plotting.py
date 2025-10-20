@@ -20,7 +20,7 @@ def _save_and_close(img_name: str):
 
 
 def plot_llo_graphs(k_range, accuracies):
-    # График зависимости точности от k
+    # Plot dependence of accuracy on k
     plt.figure(figsize=(12, 5))
 
     best_k = k_range[np.argmax(accuracies)]
@@ -36,7 +36,6 @@ def plot_llo_graphs(k_range, accuracies):
     plt.grid(True, alpha=0.3)
 
     plt.subplot(1, 2, 2)
-    # Покажем изменение точности в процентах
     accuracy_changes = np.diff(accuracies) * 100
     plt.bar(k_range[1:], accuracy_changes, color='orange', alpha=0.7)
     plt.xticks(k_range)
@@ -50,16 +49,13 @@ def plot_llo_graphs(k_range, accuracies):
 
 
 def plot_compactness_full(X, y):
-    """Полный анализ профиля компактности"""
-
     profile_calc = CompactnessProfile()
     profile_calc.fit(X, y)
 
-    # Вычисляем полный профиль
+    # Computing the full profile
     max_m = min(20, len(X) - 1)
     profile = profile_calc.compute_profile(max_m=max_m)
 
-    # Визуализация
     plt.figure(figsize=(15, 5))
 
     xrange = np.arange(1, max_m + 1)
@@ -83,7 +79,6 @@ def plot_compactness_full(X, y):
     plt.grid(True, alpha=0.3)
 
     plt.subplot(1, 3, 3)
-    # Производная профиля (скорость изменения)
     if len(profile) > 1:
         derivative = np.diff(profile)
         plt.plot(xrange[1:], derivative, 'g-o', linewidth=2, markersize=4)
@@ -100,7 +95,6 @@ def plot_compactness_full(X, y):
 
 
 def plot_prototype_selection_process(history):
-    """Анализ процесса отбора"""
     plt.figure(figsize=(6, 4))
 
     plt.plot(history["omega_sizes"], history["ccv"], 'b-o', linewidth=2, markersize=4)
@@ -109,7 +103,7 @@ def plot_prototype_selection_process(history):
     plt.title('Изменение CCV в процессе отбора')
     plt.grid(True, alpha=0.3)
 
-    # Отмечаем точку минимума
+    # Mark the minimum point
     min_idx = np.argmin(history["ccv"])
     plt.plot(history["omega_sizes"][min_idx], history["ccv"][min_idx], 'ro', markersize=8)
     plt.tight_layout()
@@ -119,7 +113,7 @@ def plot_prototype_selection_process(history):
 def visualize_prototype_selection(X_train, y_train, X_prototypes, y_prototypes):
     """Визуализация исходных данных и отобранных эталонов"""
 
-    # Используем PCA для уменьшения размерности до 2D
+    # Use PCA to reduce dimensionality to 2D
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         pca = PCA(n_components=2)
@@ -128,7 +122,7 @@ def visualize_prototype_selection(X_train, y_train, X_prototypes, y_prototypes):
 
     plt.figure(figsize=(12, 5))
 
-    # Исходные данные
+    # Initial data
     plt.subplot(1, 2, 1)
     scatter = plt.scatter(
         X_train_2d[:, 0], X_train_2d[:, 1], c=y_train,
@@ -142,7 +136,7 @@ def visualize_prototype_selection(X_train, y_train, X_prototypes, y_prototypes):
     plt.xlabel('Главная компонента 1')
     plt.ylabel('Главная компонента 2')
 
-    # Отобранные эталоны
+    # Selected prototypes
     plt.subplot(1, 2, 2)
     scatter = plt.scatter(
         X_prototypes_2d[:, 0], X_prototypes_2d[:, 1], c=y_prototypes,
@@ -150,12 +144,13 @@ def visualize_prototype_selection(X_train, y_train, X_prototypes, y_prototypes):
     )
     plt.colorbar(scatter)
     plt.title('Отобранные эталоны')
+    plt.xlabel('Главная компонента 1')
+    plt.ylabel('Главная компонента 2')
+    # Set same scale (ticks and limits)
     plt.xticks(xticks)
     plt.yticks(yticks)
     plt.xlim(xlim)
     plt.ylim(ylim)
-    plt.xlabel('Главная компонента 1')
-    plt.ylabel('Главная компонента 2')
 
     plt.tight_layout()
     _save_and_close("prototype_selection_pca.png")

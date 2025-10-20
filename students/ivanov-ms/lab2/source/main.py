@@ -54,10 +54,10 @@ def main():
     prototype_selector.fit(X_train, y_train)
     X_prototypes, y_prototypes = prototype_selector.get_prototypes()
 
-    print(f"\nРезультаты отбора:")
-    print(f"Исходный размер: {X_train.shape[0]} образцов")
-    print(f"После отбора: {X_prototypes.shape[0]} образцов")
-    print(f"Степень сжатия: {X_train.shape[0] / X_prototypes.shape[0]:.2f}x")
+    print(f"\nSelection results:")
+    print(f"Original size: {X_train.shape[0]} samples")
+    print(f"After selection: {X_prototypes.shape[0]} samples")
+    print(f"Compression ratio: {X_train.shape[0] / X_prototypes.shape[0]:.2f}x")
 
     if args.with_plotting:
         from utils.plotting import (
@@ -67,7 +67,7 @@ def main():
         plot_prototype_selection_process(prototype_selector.history)
         visualize_prototype_selection(X_train, y_train, X_prototypes, y_prototypes)
 
-    # compare again with prototypes
+    # Compare again with prototypes
     compare_with_sklearn(
         X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, best_k=best_k,
         X_prototypes=X_prototypes, y_prototypes=y_prototypes

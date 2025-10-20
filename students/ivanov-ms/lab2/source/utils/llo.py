@@ -3,10 +3,6 @@ from models import ParzenWindowKNN
 
 
 def leave_one_out(size: int):
-    """
-    Реализация Leave-One-Out
-    Возвращает индексы для каждого разбиения
-    """
     all_indices = np.arange(size)
     mask = np.ma.make_mask(all_indices)
     for i in all_indices:
@@ -16,9 +12,6 @@ def leave_one_out(size: int):
 
 
 def calculate_loo_accuracy(model: ParzenWindowKNN, X: np.ndarray, y: np.ndarray):
-    """
-    Вычисление точности с помощью LOO
-    """
     n_samples = len(X)
     correct_predictions = 0
 
@@ -30,14 +23,11 @@ def calculate_loo_accuracy(model: ParzenWindowKNN, X: np.ndarray, y: np.ndarray)
 
 
 def find_best_k_loo(X: np.ndarray, y: np.ndarray, k_start: int = 1, k_end: int = 20, plot_graph: bool = True):
-    """
-    Подбор оптимального k с помощью LOO
-    """
     best_k = None
     best_accuracy = 0
     accuracies = []
 
-    print("\nПодбор оптимального k методом LOO:")
+    print("\nSelecting the optimal k using the LOO method:")
     print("-" * 40)
     k_range = np.arange(int(k_start), int(k_end + 1))
 
@@ -50,10 +40,10 @@ def find_best_k_loo(X: np.ndarray, y: np.ndarray, k_start: int = 1, k_end: int =
             best_accuracy = accuracy
             best_k = k
 
-        print(f"k = {k:2d}, Точность LOO: {accuracy:.4f}")
+        print(f"k = {k:2d}, Accuracy LOO: {accuracy:.4f}")
 
     print("-" * 40)
-    print(f"Оптимальное k: {best_k} с точностью {best_accuracy:.4f}")
+    print(f"Optimal k: {best_k} with accuracy {best_accuracy:.4f}")
 
     if plot_graph:
         from .plotting import plot_llo_graphs
