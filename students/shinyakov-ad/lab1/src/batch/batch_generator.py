@@ -22,7 +22,7 @@ class BatchGenerator:
             if self.shuffle:
                 perm = np.random.permutation(self.num_samples)
                 X_data, y_data = X_data[perm], y_data[perm]
-        elif self.sampling_strategy in ["hard", "soft"]:
+        elif self.sampling_strategy in ["hard"]:
             abs_margins = np.abs(self.margins)
             
             if self.sampling_strategy == "hard":

@@ -23,3 +23,63 @@
 
 # Отчет
 
+1. В качестве датасеты был выбран https://www.kaggle.com/datasets/rabieelkharoua/cancer-prediction-dataset с задачей бинарной классификации наличия рака у человека
+
+В данных нет пропусков.
+
+Распределение признаков:
+
+![image](./artifacts/features_gistogram.png)
+
+Отсюда видно, что Gender, Smoking, GeneticRisk и CancerHistpry - бинарные категориальные признаки. Остальные - численные (возможно категориальные по типу возраста)
+
+Корреляционная матрица:
+
+![image](./artifacts/correlation_matrix.png)
+
+2. [Код для вычисления margin](./src/module/margin.py)
+
+3. [Код для вычисления loss](./src/module/loss.py)
+
+4. [Код для вычисления Q](./src/module/evaluator.py)
+
+5. [Код для SGD и NAG](./src/module/optimizer.py)
+
+6. [Код с регуляризацией](./src/module/regularization.py)
+
+7. П.5
+
+8. [Код для предъявления по отступу или случайным образом](./src/batch/batch_generator.py)
+
+9. По результатам обучения получилась таблица со сравнением резуьтатов модели:
+
+| Модель | Accuracy | Q | Margin |
+|--------|----------|---|--------|
+|Инициализация весов через корреляцию + SGD | 0.723 | ![](./artifacts/correlation_weight_init.png) | ![](./artifacts/correlation_weight_margin.png) |
+|Инициализация весов мультистарт + SGD | 0.776 | ![](./artifacts/multistart_sgd.png) | ![](./artifacts/multistart_sgd_margin.png) |
+|Инициализация весов мультистарт + NAG | 0.77 | ![](./artifacts/multistart_nag.png) | ![](./artifacts/multistart_nag_margin.png) |
+|Обучение с предъявлением по margin + SGD | 0.393 | ![](./artifacts/margin_weight.png) | ![](./artifacts/margin_weight_margin.png) |
+|Обучение со случайным предъявлением + SGD | 0.693 | ![](./artifacts/correlation_weight_init.png) | ![](./artifacts/correlation_weight_margin.png) |
+
+Лучшей оказалась модель с иницализацией через мультистарт + SGD
+
+10. Сравним с sklearn реализацией
+
+```python
+baseline_model = SGDClassifier(
+        loss='hinge',
+        max_iter=100,
+        learning_rate='constant',
+        eta0=0.002,
+        random_state=42,
+        tol=1e-3,
+        shuffle=True
+    )
+```
+
+Accuracy: 0.75
+
+Реализованная модель справилась даже немного лучше.
+
+
+

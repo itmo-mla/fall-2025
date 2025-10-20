@@ -42,23 +42,22 @@ class BinaryLinearClassification:
         return X.dot(weights)
 
     def _init_weights(self, X, y):
-        X_bias = np.c_[-np.ones((len(X), 1)), X]
         if self.weight_init == "correlation":
-            corrs = np.corrcoef(X_bias.T, y)[-1, :-1]
+            corrs = np.corrcoef(X.T, y)[-1, :-1]
             self.weights = np.nan_to_num(corrs)
         else:
-            self.weights = np.random.randn(X_bias.shape[1])
+            self.weights = np.random.randn(X.shape[1])
 
     def fit(self, X, y, n_starts=1):
         best_weights = None
         best_loss = float('inf')
 
+        X_bias = np.c_[-np.ones((len(X), 1)), X]
+
         # Мультистарт
         for start in range(n_starts):
             np.random.seed(self.random_state + start)
-            self._init_weights(X, y)
-
-            X_bias = np.c_[-np.ones((len(X), 1)), X]
+            self._init_weights(X_bias, y)
 
             for _ in range(self.epochs):
                 epoch_loss = []
@@ -74,8 +73,6 @@ class BinaryLinearClassification:
                 )
 
                 for X_batch, y_batch in batch_gen:
-                    X_batch = np.atleast_2d(X_batch)
-                    y_batch = np.atleast_1d(y_batch)
 
                     def gradient_function(weights):
                         y_pred = self.forward(X_batch, weights)
