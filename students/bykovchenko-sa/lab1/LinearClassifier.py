@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.linear_model import LogisticRegression
 import os
 
-PLOTS_DIR = "plots"
+PLOTS_DIR = "plots_logistic"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 df = pd.read_csv('heart.csv')
@@ -69,23 +69,53 @@ class MyLinearClassifier:
         """M_i(w) = g(x_i, w)y_i"""
         return self.discriminant_func(X) * y
 
-    def quadratic_loss(self, margin):
-        """Квадратичная функция потерь: L(M) = (1 - M)^2"""
-        return (1 - margin) ** 2
+    def logistic_loss(self, margin):
+        """Логистическая функция потерь L(M) = log(1 + exp(-M))"""
+        # ограничиваем отступ для численной устойчивости
+        safe_margin = np.clip(margin, -500, 500)
+        # exp(-M)
+        exp_neg_m = np.exp(-safe_margin)
+        # 1 + exp(-M)
+        one_plus_exp = 1.0 + exp_neg_m
+        # логарифм
+        loss = np.log(one_plus_exp)
+        return loss
 
-    def quadratic_loss_gradient(self, margin, x, y):
-        """
-        Градиент квадратичной функции потерь по весам
-        ∂L/∂w = ∂L/∂M * ∂M/∂w = -2(1 - M) * y * x
-        """
-        return -2 * (1 - margin) * y * x
+    def logistic_loss_gradient(self, margin, x, y):
+        """Градиент логистической потери по весам -σ(-M) * y * x"""
+        # ограничиваем отступ для численной устойчивости
+        # при margin < -500: σ(-M) примерно 1 (полная ошибка)
+        # при margin > 500: σ(-M) примерно 0 (полная уверенность)
+        safe_margin = np.clip(margin, -500, 500)
 
-    def quadratic_loss_gradient_bias(self, margin, y):
-        """
-        Градиент квадратичной функции потерь по смещению
-        ∂L/∂b = ∂L/∂M * ∂M/∂b = -2(1 - M) * y
-        """
-        return -2 * (1 - margin) * y
+        # вычисляем σ(-M) = 1 / (1 + exp(M))
+        # σ(-M) - это вероятность того, что модель ошибается
+        # при M -> -∞: σ(-M) → 1 (100% ошибка)
+        # при M -> +∞: σ(-M) → 0 (0% ошибка)
+        # при M = 0: σ(-M) = 0.5 (50% ошибка)
+        sigma_neg_m = 1 / (1 + np.exp(safe_margin))
+
+        # вычисляем градиент ∂L/∂w = -σ(-M) * y * x
+        # -σ(-M) отрицательная вероятность ошибки (направление антиградиента)
+        # y истинная метка (-1 или +1)
+        # x вектор признаков объекта
+        gradient = -sigma_neg_m * y * x
+
+        return gradient
+
+    def logistic_loss_gradient_bias(self, margin, y):
+        """Градиент логистической потери по смещению -σ(-M) * y"""
+        # ограничиваем отступ для численной устойчивости, те же причины, что и для градиента по весам
+        safe_margin = np.clip(margin, -500, 500)
+
+        # вычисляем σ(-M) = 1 / (1 + exp(M))
+        sigma_neg_m = 1 / (1 + np.exp(safe_margin))
+
+        # вычисляем градиент ∂L/∂b = -σ(-M) * y
+        # Отличается от градиента по весам только отсутствием x, смещение b влияет на все признаки одинаково
+        gradient = -sigma_neg_m * y
+
+        return gradient
 
     def compute_regularization_gradient(self):
         """
@@ -104,7 +134,7 @@ class MyLinearClassifier:
         Q̃(w) = Σ L(w, x_i) + (τ/2) * ‖w‖²
         """
         margins = self.margin(X, y)
-        losses = self.quadratic_loss(margins)
+        losses = self.logistic_loss(margins)
         L2_reg = (self.regularization_coef / 2) * np.sum(self.weights ** 2)
         return np.mean(losses) + L2_reg
 
@@ -124,8 +154,8 @@ class MyLinearClassifier:
             margin = self.margin_single(x_i, y_i)
 
             # градиент функции потерь
-            grad_w_i = self.quadratic_loss_gradient(margin, x_i, y_i)
-            grad_b_i = self.quadratic_loss_gradient_bias(margin, y_i)
+            grad_w_i = self.logistic_loss_gradient(margin, x_i, y_i)
+            grad_b_i = self.logistic_loss_gradient_bias(margin, y_i)
             grad_w += grad_w_i
             grad_b += grad_b_i
 
@@ -217,17 +247,13 @@ class MyLinearClassifier:
         if strategy == 'uncertainty':
             # чаще берем объекты с меньшей уверенностью (меньший |M_i|)
             probabilities = 1.0 / (abs_margins + 1e-10)
-        elif strategy == 'error':
-            # чаще берем объекты с большей ошибкой (меньший M_i), для квадратичной функции потерь используем величину потерь
-            losses = self.quadratic_loss(margins)
-            probabilities = losses
         elif strategy == 'hard_only':
             # берем только трудные объекты (M_i < 1)
             mask = margins < 1
             if np.any(mask):
                 probabilities = np.zeros_like(margins)
                 # для трудных объектов используем величину потерь
-                probabilities[mask] = self.quadratic_loss(margins[mask])
+                probabilities[mask] = self.logistic_loss(margins[mask])
             else:
                 probabilities = np.ones_like(margins) / len(margins)
         else:
@@ -240,87 +266,6 @@ class MyLinearClassifier:
         # выбираем случайный индекс
         idx = np.random.choice(len(X), p=probabilities)
         return idx, margins[idx]
-
-    def plot_margins_distribution(self, margins, y_true, title):
-        """
-        Визуализация распределения отступов
-        """
-        plt.figure(figsize=(15, 10))
-
-        # гистограмма отступов
-        plt.subplot(2, 3, 1)
-        plt.hist(margins[y_true == -1], alpha=0.7, label='Класс -1 (Здоровые)', bins=30, color='blue', density=True)
-        plt.hist(margins[y_true == 1], alpha=0.7, label='Класс +1 (Болезнь)', bins=30, color='red', density=True)
-        plt.axvline(x=0, color='black', linestyle='--', linewidth=2, label='Граница решения')
-        plt.xlabel('Отступ')
-        plt.ylabel('Плотность')
-        plt.title('Распределение отступов по классам')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-
-        # boxplot по классам
-        plt.subplot(2, 3, 2)
-        box_data = [margins[y_true == -1], margins[y_true == 1]]
-        plt.boxplot(box_data, tick_labels=['Класс -1', 'Класс +1'])
-        plt.title('Boxplot отступов по классам')
-        plt.ylabel('Отступ')
-        plt.grid(True, alpha=0.3)
-
-        # эмпирическая функция распределения
-        plt.subplot(2, 3, 3)
-        for class_label in [-1, 1]:
-            class_margins = margins[y_true == class_label]
-            if len(class_margins) > 0:
-                sorted_margins = np.sort(class_margins)
-                plt.plot(sorted_margins, np.arange(1, len(sorted_margins) + 1) / len(sorted_margins),
-                         label=f'Класс {class_label}', linewidth=2)
-        plt.xlabel('Отступ')
-        plt.ylabel('Функция распределения')
-        plt.title('Эмпирическая функция распределения отступов')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-
-        # точечная диаграмма отступов
-        plt.subplot(2, 3, 4)
-        plt.scatter(range(len(margins)), margins, c=y_true, cmap='coolwarm', alpha=0.6)
-        plt.axhline(y=0, color='black', linestyle='--', linewidth=2)
-        plt.xlabel('Индекс объекта')
-        plt.ylabel('Отступ')
-        plt.title('Значения отступов для каждого объекта')
-        plt.colorbar(label='Истинный класс')
-        plt.grid(True, alpha=0.3)
-
-        # распределение абсолютных значений отступов
-        plt.subplot(2, 3, 5)
-        abs_margins = np.abs(margins)
-        plt.hist(abs_margins, bins=30, alpha=0.7, color='green', density=True)
-        plt.axvline(x=1, color='red', linestyle='--', linewidth=2, label='Отступ = 1')
-        plt.xlabel('Абсолютное значение отступа')
-        plt.ylabel('Плотность')
-        plt.title('Распределение абсолютных значений отступов')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-
-        # процент правильно классифицированных объектов в зависимости от порога отступа
-        plt.subplot(2, 3, 6)
-        thresholds = np.linspace(0, 3, 100)
-        accuracy_vs_threshold = []
-        for threshold in thresholds:
-            correct = np.abs(margins) > threshold
-            accuracy_vs_threshold.append(np.mean(correct))
-
-        plt.plot(thresholds, accuracy_vs_threshold, linewidth=2)
-        plt.xlabel('Порог отступа')
-        plt.ylabel('Точность')
-        plt.title('Точность в зависимости от порога отступа')
-        plt.grid(True, alpha=0.3)
-
-        plt.suptitle(title, fontsize=16)
-        plt.tight_layout(pad=3.0)
-
-        safe_title = "".join(c if c.isalnum() or c in " _-" else "_" for c in title)
-        plt.savefig(os.path.join(PLOTS_DIR, f"{safe_title}.png"), dpi=150, bbox_inches='tight')
-        # plt.show()
 
     def analyze_margins(self, X, y, title="Анализ отступов"):
         margins = self.margin(X, y)
@@ -341,7 +286,6 @@ class MyLinearClassifier:
                 print(f"  Средний отступ: {class_margins.mean():.4f}")
                 print(f"  Минимальный отступ: {class_margins.min():.4f}")
                 print(f"  Доля отрицательных отступов: {np.mean(class_margins < 0):.2%}")
-        self.plot_margins_distribution(margins, y, title)
         return margins
 
     def track_margin_statistics(self, X, y, epoch):
@@ -389,13 +333,50 @@ class MyLinearClassifier:
         plt.savefig(os.path.join(PLOTS_DIR, "margin_evolution.png"), dpi=150, bbox_inches='tight')
         # plt.show()
 
+    def plot_margin_ranking(self, X, y, title="Распределение отступов по рангу"):
+        margins = self.margin(X, y)
+        sorted_indices = np.argsort(margins)
+        sorted_margins = margins[sorted_indices]
+        x = np.arange(len(sorted_margins))
+        plt.figure(figsize=(12, 6))
+
+        # красная зона M < 0
+        mask_noise = sorted_margins < 0
+        if np.any(mask_noise):
+            plt.fill_between(x[mask_noise], sorted_margins[mask_noise], 0, color='red', alpha=0.3, label='Шумовые (M < 0)')
+
+        # желтая зона 0 <= M < 1
+        mask_boundary = (sorted_margins >= 0) & (sorted_margins < 1)
+        if np.any(mask_boundary):
+            plt.fill_between(x[mask_boundary], sorted_margins[mask_boundary], 0, color='yellow', alpha=0.3, label='Пограничные (0 <= M < 1)')
+
+        # зелёная зона M >= 1
+        mask_confident = sorted_margins >= 1
+        if np.any(mask_confident):
+            plt.fill_between(x[mask_confident], sorted_margins[mask_confident], 0, color='green', alpha=0.3, label='Надёжные (M >= 1)')
+
+        plt.plot(x, sorted_margins, 'b-', linewidth=2, label='Отступы')
+        plt.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        plt.axhline(y=1, color='black', linestyle='--', linewidth=1)
+        min_margin = np.min(sorted_margins)
+        max_margin = np.max(sorted_margins)
+        plt.ylim(min_margin - 0.1, max(1.1, max_margin + 0.1))
+        plt.xlabel('Индекс объекта')
+        plt.ylabel('Отступ')
+        plt.title(title)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        safe_title = "".join(c if c.isalnum() or c in " _-" else "_" for c in title)
+        plt.savefig(os.path.join(PLOTS_DIR, f"{safe_title}.png"), dpi=150, bbox_inches='tight')
+        plt.close()
+
     def predict(self, X):
         return np.sign(self.discriminant_func(X))
 
     def fit(self, X_train, y_train, X_val=None, y_val=None, n_epochs=100, batch_size=32, learning_rate=0.01, gamma=0.9,
             optimizer='sgd', sampling_strategy='random', verbose=True, track_margins=False):
         """
-        Обучение модели с квадратичной функцией потерь и L2 регуляризацией
+        Обучение модели с логистической функцией потерь и L2 регуляризацией
         """
         n_samples = X_train.shape[0]
         self.loss_history = []
@@ -487,8 +468,6 @@ model_corr = MyLinearClassifier(X_train.shape[1], init_strategy='correlation', r
 model_corr.initialize_with_correlation(X_train, y_train)
 model_corr.fit(X_train, y_train, X_val, y_val, n_epochs=50, learning_rate=0.01, optimizer='sgd', track_margins=True)
 print("\n--- Анализ отступов для модели с инициализацией через корреляцию ---")
-model_corr.analyze_margins(X_train, y_train, "Обучающая выборка - Correlation init")
-model_corr.analyze_margins(X_val, y_val, "Валидационная выборка - Correlation init")
 model_corr.plot_margin_evolution()
 all_models.append(model_corr)
 all_model_names.append('Correlation init')
@@ -567,10 +546,31 @@ for model, name in zip(all_models, all_model_names):
 print(f"\nЛучшая модель: {best_model_name} с точностью на валидации: {best_val_acc:.4f}")
 
 print("\n=== Детальный анализ отступов для лучшей модели ===")
-best_model.analyze_margins(X_train, y_train, f"Обучающая выборка - {best_model_name}")
-best_model.analyze_margins(X_val, y_val, f"Валидационная выборка - {best_model_name}")
-best_model.analyze_margins(X_test, y_test, f"Тестовая выборка - {best_model_name}")
+best_model.plot_margin_ranking(X_train, y_train, f"Обучающая выборка - {best_model_name} - Отступы по рангу")
+best_model.plot_margin_ranking(X_val, y_val, f"Валидационная выборка - {best_model_name} - Отступы по рангу")
+best_model.plot_margin_ranking(X_test, y_test, f"Тестовая выборка - {best_model_name} - Отступы по рангу")
 best_model.plot_margin_evolution()
+print("Графики распределения отступов сохранены в plots_logistic")
+
+print("\n--- Статистика отступов лучшей модели ---")
+margins_train = best_model.margin(X_train, y_train)
+margins_val = best_model.margin(X_val, y_val)
+margins_test = best_model.margin(X_test, y_test)
+
+datasets = [
+    ("Обучающая", margins_train),
+    ("Валидационная", margins_val),
+    ("Тестовая", margins_test)
+]
+
+for name, margins in datasets:
+    print(f"\n{name} выборка:")
+    print(f"Средний отступ: {np.mean(margins):.4f}")
+    print(f"Медианный отступ: {np.median(margins):.4f}")
+    print(f"Min отступ: {np.min(margins):.4f}")
+    print(f"Max отступ: {np.max(margins):.4f}")
+    print(f"Доля ошибок (M < 0): {np.mean(margins < 0):.2%}")
+    print(f"Доля уверенных (|M| > 1): {np.mean(np.abs(margins) > 1):.2%}")
 
 print("\n=== Оценка лучшей модели ===")
 test_metrics = best_model.evaluate(X_test, y_test)
