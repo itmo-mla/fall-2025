@@ -5,9 +5,10 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
 import os
 
-PLOTS_DIR = "plots_logistic"
+PLOTS_DIR = "plots_logistic_1"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 df = pd.read_csv('heart.csv')
@@ -579,15 +580,16 @@ for metric, value in test_metrics.items():
     print(f"{metric}: {value:.4f}")
 
 print("\n=== Сравнение с эталонной моделью ===")
-lr_model = LogisticRegression(penalty='l2', C=1.0 / tau, random_state=42, max_iter=1000)
-lr_model.fit(X_train, np.where(y_train == -1, 0, 1))
+lr_model = SGDClassifier(loss='log_loss', penalty='l2', alpha=tau, learning_rate='constant', eta0=0.01, max_iter=1000, random_state=42, tol=1e-4)
+y_train_01 = np.where(y_train == -1, 0, 1)
+y_test_01 = np.where(y_test == -1, 0, 1)
+lr_model.fit(X_train, y_train_01)
 lr_pred = lr_model.predict(X_test)
-lr_pred_transformed = np.where(lr_pred == 0, -1, 1)
 lr_metrics = {
-    'accuracy': accuracy_score(y_test, lr_pred_transformed),
-    'precision': precision_score(y_test, lr_pred_transformed, zero_division=0),
-    'recall': recall_score(y_test, lr_pred_transformed, zero_division=0),
-    'f1': f1_score(y_test, lr_pred_transformed, zero_division=0)
+    'accuracy': accuracy_score(y_test_01, lr_pred),
+    'precision': precision_score(y_test_01, lr_pred, zero_division=0),
+    'recall': recall_score(y_test_01, lr_pred, zero_division=0),
+    'f1': f1_score(y_test_01, lr_pred, zero_division=0)
 }
 
 print("Метрики Logistic regression:")
