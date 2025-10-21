@@ -24,7 +24,7 @@ class KNN:
         X_ro = np.array(X_ro).reshape(-1, 1)
         X_ro = np.array(sorted(np.concatenate((X_ro, self.Y.reshape(-1, 1)), axis=1), key=lambda x: x[0]))
 
-        X_ro = X_ro[X_ro[:, 0] > 1e-10, :]
+        # X_ro = X_ro[X_ro[:, 0] > 1e-10, :]
         K_plus_ro = X_ro[self.k, 0]
 
         X_ro[:, 0] = self.kernel(X_ro[:, 0] / K_plus_ro)
