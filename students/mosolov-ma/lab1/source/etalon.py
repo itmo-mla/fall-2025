@@ -1,10 +1,10 @@
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
 from metrics import Metrics
 
 
 def sklearn_model(X_train, X_test, y_train, y_test):
 
-    model = LogisticRegression()
+    model = SGDClassifier(loss='squared_error', penalty='l2', alpha=0.00001, learning_rate='constant', eta0=0.001, max_iter=10000)
 
     model.fit(X_train, y_train)
 
