@@ -46,8 +46,9 @@ class MetricsEstimator:
 def kernel_function(kernel_arg: float) -> float:
     """Не возрастает и положительно на [0, 1]"""
 
-    if kernel_arg >= 1:
+    if kernel_arg >= 1 or kernel_arg == 0:
         return 0
+
     return 1 / kernel_arg
 
 
