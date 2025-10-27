@@ -1,77 +1,84 @@
 import numpy as np
+from abc import ABC, abstractmethod
 from scipy.optimize import minimize
 
 
+class Kernel(ABC):
+    @abstractmethod
+    def __call__(self, obj1: np.ndarray, obj2: np.ndarray) -> float:
+        pass
+    
+
+class LinearKernel(Kernel):
+    def __call__(self, obj1: np.ndarray, obj2: np.ndarray) -> float:
+        return np.dot(obj1, obj2.T)
+    
+
+class SquaredKernel(Kernel):
+    def __call__(self, obj1: np.ndarray, obj2: np.ndarray) -> float:
+        return np.dot(obj1, obj2.T) ** 2
+
+
+class RBFKernel(Kernel):
+    def __init__(self, gamma: float = 1.0):
+        self.gamma = gamma
+
+
+    def __call__(self, obj1: np.ndarray, obj2: np.ndarray) -> float:
+        diff = obj1[:, np.newaxis] - obj2
+        sq_dist = np.sum(diff ** 2, axis=-1)
+        return np.exp(-self.gamma * sq_dist)
+
+
 class SVM:
-    def __init__(self, C=1, kernel_type: str = "linear", gamma: float = 0.8):
+    def __init__(self, C: float, kernel: Kernel):
         self.C = C
-        if kernel_type == "linear":
-            self.kernel = lambda x, y: np.dot(x, y.T)
-        elif kernel_type == "rbf":
-            self.kernel = lambda x, y: np.exp(-gamma * (x - y) ** 2)
+        self.kernel = kernel
 
-    def fit(self, X, y, eps=1e-4):
-        N = X.shape[0]
+    @staticmethod
+    def _get_lagrangian(lambdas: np.ndarray, X: np.ndarray, y: np.ndarray, kernel: Kernel) -> float:
+        return  - (lambdas.sum() - 0.5 * np.sum(np.outer(lambdas * y, lambdas * y) * kernel(X, X)))
+    
+    @staticmethod
+    def _get_jac(lambdas: np.ndarray, X: np.ndarray, y: np.ndarray, kernel: Kernel) -> float:
+        G = y[:, np.newaxis] * kernel(X, X) * y[:, np.newaxis].T
+        return - (np.ones_like(lambdas) - np.dot(lambdas, G))
 
-        def Lagrangian(lambdas, G):
-            return np.sum(lambdas) - 0.5 * lambdas.T @ G @ lambdas
-
-        def dL_dlambda(lambdas, G):
-            return np.ones_like(lambdas) - np.dot(lambdas, G)
-
-        I = np.eye(N)
-        constraints = (
-            {"type": "eq", "fun": lambda l: l @ y, "jac": lambda l: y},
-            {"type": "ineq", "fun": lambda l: I @ l, "jac": lambda l: I},
-        )
-
-        G = y[:, np.newaxis] * self.kernel(X, X) * y[:, np.newaxis].T
-
-        optRes = minimize(
-            fun=lambda l: -Lagrangian(l, G),
-            x0=np.zeros(N),
+    def fit(self, X: np.ndarray, y: np.ndarray, maxiter: int = 1000, ftol: float = 1e-3, support_vector_threshold = 1e-4) -> tuple[np.ndarray, np.ndarray]:
+        optmized_result = minimize(
+            fun=self._get_lagrangian,
+            x0=np.zeros(len(X)),
+            args=(X, y, self.kernel),
             method="SLSQP",
-            jac=lambda l: -dL_dlambda(l, G),
-            constraints=constraints,
-            bounds=[(0, self.C) for _ in range(N)],
-            options={"maxiter": 1000},
+            jac=self._get_jac,
+            constraints={"type": "eq", "fun": lambda lambdas: np.sum(lambdas  * y)},
+            bounds = [(0, self.C) for _ in range(len(X))],
+            options={"maxiter": maxiter, "ftol": ftol}
         )
 
-        print(f"Optimization result: {optRes.message}, status {optRes.status}")
-        if not optRes.success:
-            return False
+        if not optmized_result.success:
+            raise ArithmeticError("Failed to optimize")
 
-        self.lambdas = optRes.x
-        self.Y = y
-        self.X = X
+        lambdas = optmized_result.x
 
-        self.idxs = optRes.x > eps
-        self.support_vectors = X[self.idxs]
+        self.support_vectors_mask = lambdas > support_vector_threshold
+        self.support_vectors = X[self.support_vectors_mask]
+        self.support_vectors_labels = y[self.support_vectors_mask]
+        self.lambdas = lambdas[lambdas > support_vector_threshold]
 
-        self.w = np.sum(
-            (self.lambdas[:, np.newaxis] * y[:, np.newaxis] * X), axis=0, keepdims=True
-        )
+        self.w = np.sum(lambdas[:, np.newaxis] * y[:, np.newaxis] * X, axis=0)
+
         self.w0 = np.mean(
             np.sum(
-                self.lambdas[self.idxs, np.newaxis]
-                * y[self.idxs, np.newaxis]
-                * self.kernel(X[self.idxs], X[self.idxs]),
+                lambdas[self.support_vectors_mask, np.newaxis]
+                * y[self.support_vectors_mask, np.newaxis]
+                * self.kernel(X[self.support_vectors_mask], X[self.support_vectors_mask]),
                 axis=0,
-                keepdims=True,
             )
-            - y[self.idxs, np.newaxis]
+            - y[self.support_vectors_mask, np.newaxis]
         )
-        return True
+        return lambdas, self.support_vectors_mask
+    
+    def predict(self, x: np.ndarray):
+        return np.sign(np.sum(self.lambdas * self.support_vectors_labels * self.kernel(x, self.support_vectors)) - self.w0)
 
-    def predict(self, X):
-        res = []
-        for i in range(X.shape[0]):
-            res.append(
-                np.sum(
-                    self.lambdas[:, np.newaxis]
-                    * self.Y[:, np.newaxis]
-                    * self.kernel(self.X, X[i].reshape(1, -1))
-                )
-            )
-        res = np.array(res)
-        return 2 * (res - self.w0 > 0) - 1
