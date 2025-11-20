@@ -8,8 +8,8 @@ class MSELoss(ABCLoss):
     Квадратичная функция потерь.
     """
     def __call__(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
-        # self.y_true = y_true.copy()
-        # return np.mean(np.maximum(0, -self.y_true*y_pred))
+        # if self.learning: self.y_true = y_true.copy()
+        # return np.mean(np.maximum(0, -y_true*y_pred))
         pass
     
     def pd_wrt_a(self, A: np.ndarray) -> np.ndarray:

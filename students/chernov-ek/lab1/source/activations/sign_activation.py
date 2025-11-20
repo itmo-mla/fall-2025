@@ -4,11 +4,12 @@ from source.activations import ABCActivation
 
 
 class SignActivation(ABCActivation):
-    def __call__(self, Z: np.ndarray) -> np.ndarray:
+    def __call__(self, inputs: np.ndarray) -> np.ndarray:
         # Расчёт выходов активации
-        self.A = np.sign(Z)
-        return self.A
+        if self.learning: self.inputs = inputs.copy()
+        self.outputs = np.sign(inputs)
+        return self.outputs
     
-    def pd_wrt_z(self, Z: np.ndarray) -> np.ndarray:
-        self.dA_dZ = np.ones(Z.shape)
-        return self.dA_dZ
+    def pd_wrt_inputs(self) -> np.ndarray:
+        self.dF_dI = np.ones(self.inputs.shape)
+        return self.dF_dI

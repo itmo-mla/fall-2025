@@ -11,14 +11,11 @@ class LinearLayer(ABCLayer):
         weights = np.array([random_numbers_init(in_features + 1 if bias else in_features) for _ in range(out_features)])
         self.W = weights[:, :-1] if bias else weights
         self.b = weights[:, -1] if bias else np.zeros(out_features)
-        
-        self.X = None
-        self.Z = None
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
-        self.X = X.copy()
-        self.Z = self.X@self.W.T + self.b
-        return self.Z
+    def __call__(self, inputs: np.ndarray) -> np.ndarray:
+        if self.learning: self.inputs = inputs.copy()
+        self.outputs = inputs@self.W.T + self.b
+        return self.outputs
 
     def get_weights(self) -> np.ndarray:
          return np.column_stack((self.W, self.b)) if any(self.b) else self.W
@@ -39,8 +36,13 @@ class LinearLayer(ABCLayer):
         else:
             self.W = weights
     
+    def pd_wrt_inputs(self) -> np.ndarray | None:
+        # Частная производная по входам
+        return self.W
+    
     def pd_wrt_w(self) -> np.ndarray | None:
-        return np.column_stack((self.X, np.ones(len(self.X)))) if any(self.b) else self.X
+        # Если считаем по bias, то dZ_dW будет равна 1
+        return np.column_stack((self.inputs, np.ones(len(self.inputs)))) if any(self.b) else self.inputs
 
     def _validate_weights_size(self, weights: np.ndarray):
         error = ''

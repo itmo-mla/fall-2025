@@ -2,13 +2,14 @@ import numpy as np
 import matplotlib.pylab as plt
 
 
-def visualize_losses_metrics(losses, metrics):
+def visualize_losses_metrics(train_losses, val_losses, metrics, figsize=(10, 4)):
     # Строим графики
-    plt.figure(figsize=(10, 4))
+    plt.figure(figsize=figsize)
 
     # График потерь
     plt.subplot(1, 2, 1)
-    plt.plot(losses, label='Training loss')
+    plt.plot(train_losses, label='Train loss')
+    plt.plot(val_losses, label='Validation loss')
     plt.xlabel('Эпоха')
     plt.ylabel('Loss')
     plt.title('Изменение функции потерь')
