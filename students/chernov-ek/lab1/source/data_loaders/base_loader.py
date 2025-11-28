@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Iterator
 
-from .abc_loader import ABCLoader
+from source.data_loaders import ABCLoader
 
 
 class BaseLoader(ABCLoader):

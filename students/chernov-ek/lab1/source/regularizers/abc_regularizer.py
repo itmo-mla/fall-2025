@@ -7,7 +7,7 @@ class ABCRegularizer(ABC):
         self.lambda_q = lambda_q
 
     @abstractmethod
-    def __call__(self, weights: np.ndarray, losses: np.ndarray) -> np.ndarray:
+    def __call__(self, weights: tuple[np.ndarray, np.ndarray | None], losses: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
     
     @abstractmethod

@@ -8,14 +8,13 @@ class ABCActivation(ABC):
 
         self.inputs: np.ndarray | None = None 
         self.outputs: np.ndarray | None = None
-        self.dF_dI: np.ndarray | None = None
 
     @abstractmethod
     def __call__(self, inputs: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
-    
+
     @abstractmethod
-    def pd_wrt_inputs(self) -> np.ndarray:
+    def backward_pass(self, delta: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
     
     def train(self):

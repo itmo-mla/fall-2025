@@ -1,6 +1,6 @@
 import numpy as np
 
-from .abc_loss import ABCLoss
+from source.losses import ABCLoss
 
 
 class BCELoss(ABCLoss):
@@ -13,7 +13,5 @@ class BCELoss(ABCLoss):
         if self.learning: self.y_true = y_true.copy()
         return np.mean(-y_true*np.log(y_pred + self.eps))
     
-    def pd_wrt_inputs(self, inputs: np.ndarray) -> np.ndarray:
-        # Если бинарная классификация и выходной слой отдаёт 1 значение, то подгоняем формат
-        self.dL_dI = -(self.y_true/inputs) + ((1 - self.y_true)/(1 - inputs))
-        return self.dL_dI
+    def backward_pass(self, inputs: np.ndarray) -> np.ndarray:
+        return -(self.y_true/(inputs + self.eps)) + ((1 - self.y_true)/(1 - (inputs + self.eps)))

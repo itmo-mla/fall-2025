@@ -1,12 +1,6 @@
-import numpy as np
-from typing import Callable
-
-from .abc_model import ABCModel
+from source.models import ABCModel
 from source.layers import LinearLayer
 from source.activations import SignActivation
-from source.losses import ABCLoss
-from source.optimizers import ABCOptimizer
-from source.regularizers import ABCRegularizer
 
 
 class LinearClassificator(ABCModel):

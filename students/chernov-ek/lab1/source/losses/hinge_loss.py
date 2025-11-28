@@ -1,6 +1,6 @@
 import numpy as np
 
-from .abc_loss import ABCLoss
+from source.losses import ABCLoss
 
 
 class HingeLoss(ABCLoss):
