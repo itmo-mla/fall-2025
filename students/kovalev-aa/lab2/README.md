@@ -63,12 +63,11 @@ LOO метод (Leave-One-Out):
 
 ## 3. Настройка sklearn KNN
 
-Для воспроизведения точности нашей модели в sklearn KNN:
-* `n_neighbors = model.k` — число соседей совпадает с оптимальным k
+Для воспроизведения точности нашей модели в sklearn KNN: 
 * `weights='distance'` — учитываются веса по расстоянию А
 
 ```python
-knn_auto = KNeighborsClassifier(n_neighbors=model.k, weights='distance')
+knn_auto = KNeighborsClassifier(weights='distance')
 knn_auto.fit(x_train, y_train)
 y_pred_knn_auto = knn_auto.predict(x_train)
 ```

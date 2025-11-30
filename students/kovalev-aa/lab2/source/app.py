@@ -14,7 +14,7 @@ print_metrics(model.metrics(y_train, y_pred))
 
  
 print("\nЭТАЛОННАЯ KNN (weights='distance'):")
-knn_auto = KNeighborsClassifier(n_neighbors=model.k, weights='distance')
+knn_auto = KNeighborsClassifier(weights='distance')
 knn_auto.fit(x_train, y_train)
 y_pred_knn_auto = knn_auto.predict(x_train)
 print_metrics(model.metrics(y_train, y_pred_knn_auto))
