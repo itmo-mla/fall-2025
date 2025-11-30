@@ -1,12 +1,7 @@
-# скрипт, который воспроизводит эксперименты и рисует графики
-"""Скрипт-воспроизведение: запускает весь эксперимент и сохраняет графики.
-
-Запуск: python -m source.run_experiment
-"""
 import numpy as np
 from utils import load_default_dataset, loo_search_k, plot_risk_vs_k, compare_with_sklearn
 from knn_parzen import KNNParzen
-from prototypes import greedy_remove, greedy_add
+from prototypes import greedy_remove
 import matplotlib.pyplot as plt
 
 
@@ -15,7 +10,7 @@ def main():
     parzen = KNNParzen()
 
     k_values = list(range(1, min(51, X.shape[0])))
-    print('Запускаю LOO-поиск по k (это может занять время, но dataset маленький)')
+    print('Запускаю LOO-поиск по k')
     errors = loo_search_k(parzen, X, y, k_values)
     best_idx = int(np.argmin(errors))
     best_k = k_values[best_idx]

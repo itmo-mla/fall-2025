@@ -1,20 +1,12 @@
-# алгоритмы отбора эталонов (жадное удаление/добавление)
-"""Отбор эталонов: жадное удаление и добавление по LOO-ошибке (CCV эмпирически через LOO)."""
 import numpy as np
-from copy import deepcopy
 
 
 def loo_error_with_prototypes(X, y, proto_idx, classifier_ctor, **kwargs):
-    # classifier_ctor: callable returning объект с fit/predict
-    # proto_idx: список индексов прототипов в X
     n = X.shape[0]
     errs = 0
     for i in range(n):
-        # тренируем на прототипах, но не включаем xi как прототип, даже если он есть
         protos = [p for p in proto_idx if p != i]
         if len(protos) == 0:
-            # без эталонов — классифицатор случайно (или по наибольшему классу)
-            # считаем ошибку = 1 для безопасности
             errs += 1
             continue
         clf = classifier_ctor()

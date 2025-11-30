@@ -1,6 +1,3 @@
-# загрузка датасета, масштабирование, LOO и метрики
-"""Утилиты: загрузка датасета (скейлится), LOO-подбор k для KNNParzen и графики.
-"""
 import numpy as np
 from sklearn import datasets
 from sklearn.preprocessing import StandardScaler
@@ -20,7 +17,6 @@ def load_default_dataset(name='wine'):
         raise ValueError('unknown dataset')
     X = data.data
     y = data.target
-    # стандартизируем признаки
     X = StandardScaler().fit_transform(X)
     return X, y
 
