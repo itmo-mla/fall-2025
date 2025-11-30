@@ -16,6 +16,8 @@ class Classifier(ABC):
         self.v_w = None
         self.v_b = None
         self.losses = []
+        self.emp_losses = []
+
         self.accuracies = []
         self.test_loss = None
         self.test_accuracy = None
@@ -49,6 +51,27 @@ class Classifier(ABC):
     @abstractmethod
     def regulazer(self):
         pass
+
+    def reset(self):
+        """Сброс всех параметров модели к исходному состоянию"""
+        self.w = None
+        self.b = 0
+        self.regress_error = 0
+        self.margin = None
+        self.reg_koef = None
+        self.v_w = None
+        self.v_b = None
+        self.losses.clear()
+        self.emp_losses.clear()
+        self.accuracies.clear()
+        self.accuracies = []
+        self.test_loss = None
+        self.test_accuracy = None
+        self.test_precision = None
+        self.test_recall = None
+        self.test_f1 = None
+        self.epoches = 0
+        self.is_trained = False
 
     def accuracy(self,y_true, y_pred):
         return np.mean(y_true == y_pred)
@@ -110,7 +133,32 @@ class Classifier(ABC):
             plt.show()
         else:
             raise RuntimeError("Model is not trained yet. Cannot plot margins.")
+    
+    def emp_plot(self):
+        if not self.is_trained:
+            raise RuntimeError("Model is not trained yet.")
 
+        step = 100
+        epochs = list(range(0, self.epoches, step))
+        losses = self.emp_losses
+
+ 
+        if epochs[-1] != self.epoches - 1:
+            epochs.append(self.epoches - 1)
+            losses.append(self.emp_losses[-1])
+
+ 
+        min_len = min(len(epochs), len(losses))
+        epochs = epochs[:min_len]
+        losses = losses[:min_len]
+
+        plt.figure(figsize=(10,5))
+        plt.plot(epochs, losses, marker='o', label='EmpRisk')
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Empirical Risk")
+        plt.legend()
+        plt.show()
 
 
     def desc_metrics(self):
@@ -173,7 +221,10 @@ class Classifier(ABC):
             koef_attenuation = 1 / len(batches)
 
             loss_val = self.loss(x_sub, y_sub)
-
+            emp_loss = self.loss(x_test, y_test)
+            emp_loss = self.loss(x_test, y_test)
+            if i % 100 == 0 or i == self.epoches - 1:
+                self.emp_losses.append(emp_loss)
             # градиентный шаг с инерцией
             self.v_w = beta * self.v_w + lr * grad_w
             self.v_b = beta * self.v_b + lr * grad_b
@@ -181,10 +232,13 @@ class Classifier(ABC):
             self.b -= self.v_b
 
             self.regress_error = koef_attenuation * loss_val + (1 - koef_attenuation) * self.regress_error
+            # emp_error = koef_attenuation * emp_loss + (1 - koef_attenuation) * self.regress_error
+
             y_pred = self.predict(x_sub)
             accuracy = self.accuracy(y_sub, y_pred)
 
             self.losses.append(self.regress_error)
+ 
             self.accuracies.append(accuracy)
 
             # логирование каждые 10% эпох
@@ -215,6 +269,57 @@ class Classifier(ABC):
         with open(log_file, 'a') as f:
             f.write(final_msg + '\n')
 
+        self.is_trained = True
+
+
+    def train_gd(self, x_train, y_train, x_test, y_test, 
+                 epoches=500, lr=0.0005, reg_koef=0.01, batch_count=10, log_file='gd_log.txt'):
+
+        self.epoches = epoches
+        self.reg_koef = reg_koef
+        self.regress_error = 0
+
+        self.init_w(x_train, y_train, method='random')
+        self.b = 0
+
+        for i in range(epoches):
+
+            batches = self.batching(x_train, y_train, method='margin', batch_count=batch_count)
+            
+            grad_w_total = np.zeros_like(self.w)
+            grad_b_total = 0
+
+            for x_sub, y_sub in batches:
+                gw, gb = self.gradient(x_sub, y_sub)
+                grad_w_total += gw
+                grad_b_total += gb
+
+            grad_w = grad_w_total / len(batches)
+            grad_b = grad_b_total / len(batches)
+
+            self.w -= lr * grad_w
+            self.b -= lr * grad_b
+
+            train_loss = self.loss(x_train, y_train)
+            test_loss = self.loss(x_test, y_test)
+
+            self.losses.append(train_loss)
+            self.emp_losses.append(test_loss)
+            self.accuracies.append(self.accuracy(y_train, self.predict(x_train)))
+
+            msg = f"[Epoch {i:4d}] TrainLoss: {train_loss:.6f} | TestLoss: {test_loss:.6f}"
+            print(msg)
+            with open(log_file, 'a') as f:
+                f.write(msg + '\n')
+
+        y_pred_test = self.predict(x_test)
+        self.test_loss = self.loss(x_test, y_test)
+        self.test_accuracy = self.accuracy(y_test, y_pred_test)
+        self.test_precision = self.precision(y_test, y_pred_test)
+        self.test_recall = self.recall(y_test, y_pred_test)
+        self.test_f1 = self.f1_score(y_test, y_pred_test)
+
+        print("\nGD finished")
         self.is_trained = True
 
 

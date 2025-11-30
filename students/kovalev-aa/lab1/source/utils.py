@@ -145,5 +145,6 @@ def choose_best_model(models_dict,
 #Анализ лучшей модели
 def analyse_model(model:ClassifierLogisticReg):
     model.losses_plot()
+    model.emp_plot()
     model.margin_plot()
     model.desc_metrics()
