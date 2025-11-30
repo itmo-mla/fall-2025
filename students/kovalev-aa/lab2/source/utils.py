@@ -3,13 +3,15 @@ import numpy as np
 from abc import ABC, abstractmethod
 from datetime import datetime
 import matplotlib.pyplot as plt
+from sklearn.impute import SimpleImputer
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import kagglehub
 from kagglehub import KaggleDatasetAdapter
 from sklearn.model_selection import train_test_split
-
+import os
+import urllib.request
 class ModelWrapper:
     def __init__(self, model, test_accuracy=None,
                  precision=None, recall=None, f1=None):
@@ -22,24 +24,36 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+
 def load_base():
-    # Путь к файлу
-    file_path = "breast-cancer.csv" 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_dir, "breast-cancer.csv")
+
+    if not os.path.exists(file_path):
+        print(f"{file_path} не найден. Скачиваем...")
+        url = (
+          "https://huggingface.co/datasets/mnemoraorg/wisconsin-breast-cancer-diagnostic/"
+          "raw/main/raw_breast_cancer.csv"
+        )
+        urllib.request.urlretrieve(url, file_path)
+        print(f"Файл скачан и сохранён в {file_path}")
+
     clean_data = pd.read_csv(file_path)
-    
- 
-    clean_data = clean_data.drop(columns=['id'])
-    
- 
-    clean_data['diagnosis'] = clean_data['diagnosis'].map({'M': 1, 'B': 0})
-    
-  
-    
- 
+
+    if 'id' in clean_data.columns:
+        clean_data = clean_data.drop(columns=['id'])
+
+    if 'diagnosis' in clean_data.columns:
+        clean_data['diagnosis'] = clean_data['diagnosis'].map({'M': 1, 'B': 0})
+
     train_x = clean_data.drop('diagnosis', axis=1).to_numpy(dtype=float)
-    train_y = clean_data['diagnosis'].to_numpy(dtype=int) 
-    
-    return train_x, train_y 
+    train_y = clean_data['diagnosis'].to_numpy(dtype=int)
+
+    # Заполняем NaN медианой
+    imputer = SimpleImputer(strategy='median')
+    train_x = imputer.fit_transform(train_x)
+
+    return train_x, train_y
 
 def plot_risk_summary(k_array, k_errors, save_path="risk_plots"): 
     
