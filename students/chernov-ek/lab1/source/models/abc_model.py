@@ -7,6 +7,8 @@ from source.activations import ABCActivation
 from source.losses import ABCLoss
 from source.optimizers import ABCOptimizer
 from source.regularizers import ABCRegularizer
+from source.data_loaders import ShuffleLoader, ModuleMarginLoader
+from source.tools import utils
 
 
 class ABCModel(ABC):
@@ -111,12 +113,35 @@ class ABCModel(ABC):
             regularizer: ABCRegularizer | None = None,
             postprocess: Callable[[np.ndarray], np.ndarray] | None = None,
             count_metric: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
+            warmup_epochs: int = 0,
             verbose_n_batch_multiple: int = 1,
             verbose_statistic: str = 'all'
         ):
         self.train()
         loss.train()
+
+        base_data_loader = optimizer.data_loader
+        # На старте используем shuffle loader
+        if isinstance(base_data_loader, ModuleMarginLoader) and (warmup_epochs > 0):
+            optimizer.data_loader = ShuffleLoader(batch_size=optimizer.data_loader.batch_size)
+
         for n_epoch in range(n_epochs):
+            # Если мы перешли к ModuleMarginLoader после warmup
+            if isinstance(base_data_loader, ModuleMarginLoader) and n_epoch >= warmup_epochs:
+                # Вычисляем margin-и с помощью твоей функции
+                self.eval()
+                _, margins = utils.get_margins(self, X_train, y_train)
+                self.train()
+
+                # Авто-подбор порогов μ⁺ и μ⁻
+                mean_M = np.mean(margins)
+                std_M = np.std(margins)
+                base_data_loader.M = margins
+                base_data_loader.threshold_good_objects = mean_M + 0.5*std_M
+                base_data_loader.threshold_outliners = mean_M - 2*std_M
+
+                optimizer.data_loader = base_data_loader
+
             losses_train_batch = []
             losses_val_batch = []
             metrics_val_batch = []
@@ -124,7 +149,7 @@ class ABCModel(ABC):
                 # forward pass
                 y_pred_batch = self.__call__(X_train_batch)
                 loss_batch = loss(y_train_batch, y_pred_batch)
-                loss_batch = regularizer(self.get_weights(), loss_batch) if regularizer else loss_batch
+                if regularizer: loss_batch += regularizer(self.get_weights())
 
                 # backward pass
                 self.backward_pass(loss)
