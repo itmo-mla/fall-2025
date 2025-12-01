@@ -42,32 +42,3 @@ def greedy_remove(X, y, classifier_ctor, tol=1e-6):
     return proto, best_err
 
 
-def greedy_add(X, y, classifier_ctor):
-    # начинаем с одного представителя на класс, добавляем жадно
-    classes = np.unique(y)
-    proto = []
-    for c in classes:
-        # берем один случайный объект из класса c
-        idx = np.where(y == c)[0][0]
-        proto.append(int(idx))
-    best_err = loo_error_with_prototypes(X, y, proto, classifier_ctor)
-    improved = True
-    remaining = [i for i in range(X.shape[0]) if i not in proto]
-    while improved and len(remaining) > 0:
-        improved = False
-        best_candidate = None
-        best_candidate_err = best_err
-        for p in remaining:
-            cand = proto + [p]
-            err = loo_error_with_prototypes(X, y, cand, classifier_ctor)
-            if err < best_candidate_err:
-                best_candidate_err = err
-                best_candidate = p
-        if best_candidate is not None:
-            proto.append(best_candidate)
-            remaining.remove(best_candidate)
-            best_err = best_candidate_err
-            improved = True
-        else:
-            break
-    return proto, best_err

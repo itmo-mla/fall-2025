@@ -50,7 +50,7 @@ class KNNParzen:
             for idx_tr, wi in enumerate(w):
                 votes[self.y[idx_tr]] += wi
             # argmax голосов
-            # в случае равенства — выбрать минимальный класс-лейбл для детерминированности
+            # в случае равенства — выбрать минимальный класс-лейбл
             best = max(sorted(votes.items(), key=lambda kv: (kv[1], -float(kv[0]))), key=lambda kv: kv[1])[0]
             preds.append(best)
         return np.array(preds)
