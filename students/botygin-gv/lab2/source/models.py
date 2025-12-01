@@ -23,7 +23,7 @@ class ParzenWindowKNN:
         for x in X_test:
             distances = np.linalg.norm(self.X_train - x, axis=1)
             sorted_indices = np.argsort(distances)
-            h = distances[sorted_indices[self.k]]
+            h = distances[sorted_indices[self.k+1]]
 
             if h == 0:
                 nearest_idx = np.argmin(distances)

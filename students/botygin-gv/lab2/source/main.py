@@ -7,6 +7,7 @@ from evaluation import loo_cross_validation
 from visualization import plot_risk, visualize_prototype_selection
 from sklearn.datasets import load_wine, load_iris, load_breast_cancer, make_classification
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
 
 
 IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
@@ -24,6 +25,8 @@ def compare_with_sklearn(X_train, y_train, X_test, y_test):
 def main():
     data = load_wine()
     X, y = data.data, data.target
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
 
     # Подбор параметра k методом LOO
     k_range = range(1, min(31, len(X)))
@@ -51,8 +54,8 @@ def main():
     # Отбор эталонов
     print("\nЗапуск алгоритма отбора эталонов...")
     ps = PrototypeSelection()
-    X_reduced, y_reduced = ps.fit(X, y)
-    print(f"Размер исходного набора: {len(X)}")
+    X_reduced, y_reduced = ps.fit(X_train, y_train)
+    print(f"Размер исходного набора: {len(X_train)}")
     print(f"Размер отобранного набора: {len(X_reduced)}")
 
     # Оценка KNN на отобранных эталонах
