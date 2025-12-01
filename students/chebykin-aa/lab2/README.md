@@ -72,25 +72,40 @@ OwnKNeighborsClassifier - это метрический классификато
 
 ![alt text](./source/results/triangle/q_plot.png)
 
-Минимальный эмпирический риск = 0.0211 достигается при k = 20
+Минимальный эмпирический риск = 0.0228 достигается при k = 20
 
 - квадратичное ядро
 
 ![alt text](./source/results/quadratic/q_plot.png)
 
-Минимальный эмпирический риск = 0.0211 достигается при k = 20
+Минимальный эмпирический риск = 0.0211 достигается при k = 19
 
 ## 5. Сравнение OwnKNeighborsClassifier и KNeighborsClassifier
 
 Чтобы убедится, что собственная реализация KNN работает правильно, сравним его с ```KNeighborsClassifier``` из библиотеки sklearn. Будем тестировать модели, используя тот же метод LOO на всех данных:
 
-Метрики качества работы данной модели:
+- ядро гаусса
+
 | model | Accuracy | Precision | Recall | F1 Score |
 |------|------|------|------|------|
-| OwnKNeighborsClassifier | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
-| KNeighborsClassifier | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
+| OwnKNeighborsClassifier | 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+| KNeighborsClassifier | 0.97012 | 0.95699 | 0.99720 | 0.97668 |
 
-из метрик видно, что обе модели работают показывают идентичные результаты.
+- треугольное ядро
+
+| model | Accuracy | Precision | Recall | F1 Score |
+|------|------|------|------|------|
+| OwnKNeighborsClassifier | 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+| KNeighborsClassifier | 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+
+- квадратичное ядро
+
+| model | Accuracy | Precision | Recall | F1 Score |
+|------|------|------|------|------|
+| OwnKNeighborsClassifier | 0.96661 | 0.95187 | 0.99720 | 0.97401 |
+| KNeighborsClassifier | 0.96661 | 0.95187 | 0.99720 | 0.97401 |
+
+из метрик видно, что обе модели показывают идентичные результаты.
 
 ## 6. Реализация алгоритма жадного отбор эталонов Ω по критерию CCV(Ω)
 
@@ -129,16 +144,29 @@ with ThreadPoolExecutor(max_workers=2) as executor:
 
 Ниже представлены сравнительные таблицы качества работы моделей до/после отбора эталонов: 
 
-- OwnKNeighborsClassifier:
-
-| state | Accuracy | Precision | Recall | F1 Score |
-|------|------|------|------|------|
-| до | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
-| после | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
-
-- KNeighborsClassifier
+- ядро гаусса
 
 | model | Accuracy | Precision | Recall | F1 Score |
 |------|------|------|------|------|
-| до | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
-| после | 0.8857 | 0.9032 | 0.8857 | 0.8799 |
+| OwnKNeighborsClassifier (до)| 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+| OwnKNeighborsClassifier (после)| 0.98682 | 0.97971 | 1.00000 | 0.98975 |
+| KNeighborsClassifier (до)| 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+| KNeighborsClassifier (после)| 0.98305 | 0.97681 | 0.99704 | 0.98682 |
+
+- треугольное ядро
+
+| model | Accuracy | Precision | Recall | F1 Score |
+|------|------|------|------|------|
+| OwnKNeighborsClassifier (до)| 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+| OwnKNeighborsClassifier (после)| 0.98857 | 0.98230 | 1.00000 | 0.99107 |
+| KNeighborsClassifier (до)| 0.97012 | 0.95699 | 0.99720 | 0.97668 |
+| KNeighborsClassifier (после)| 0.97714 | 0.96522 | 1.00000 | 0.98230 |
+
+- квадратичное ядро
+
+| model | Accuracy | Precision | Recall | F1 Score |
+|------|------|------|------|------|
+| OwnKNeighborsClassifier (до)| 0.96661 | 0.95187 | 0.99720 | 0.97401 |
+| OwnKNeighborsClassifier (после)| 0.98679 | 0.97959 | 1.00000 | 0.98969 |
+| KNeighborsClassifier (до)| 0.96661 | 0.95187 | 0.99720 | 0.97401 |
+| KNeighborsClassifier (после)| 0.96038 | 0.94366 | 0.99702 | 0.96961 |
