@@ -5,50 +5,86 @@ from graphics import plot_pca_scatter, plot_Em
 import matplotlib.pyplot as plt
 import numpy as np
 
-df = load_and_prepare_data()
+def pca_scatter(X, y):
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(X)
 
-X = df.drop(columns='target')
+    pca_custom = CustomPCA(n_components=2)
+    X_pca_custom = pca_custom.fit_transform(X)
 
-y = df['target']
+    plot_pca_scatter(X_pca, y, title='Sklearn PCA')
 
-X = scale_features(X)
+    plot_pca_scatter(X_pca_custom, y, title='custom PCA')
 
-X = X.to_numpy()
+    plt.show()
 
-y = y.to_numpy()
 
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X)
+def pca_Em_synthetic():
+    X_synthetic = generate_multicollinear_data(n_samples=1000)
 
-pca_custom = CustomPCA(n_components=2)
-X_pca_custom = pca_custom.fit_transform(X)
+    pca = PCA()
 
-plot_pca_scatter(X_pca, y, title='Sklearn PCA')
+    X_pca = pca.fit_transform(X_synthetic)
 
-plot_pca_scatter(X_pca_custom, y, title='custom PCA')
+    pca_custom = CustomPCA()
 
-plt.show()
+    X_pca_custom = pca_custom.fit_transform(X_synthetic)
 
-print(pca.singular_values_)
+    print(pca.singular_values_)
 
-print(pca_custom.singular_values_)
+    print(pca_custom.singular_values_)
 
-X_synthetic = generate_multicollinear_data(n_samples=1000, noise_std=0.5)
+    plot_Em(pca.singular_values_, title='Sklearn PCA')
 
-pca = PCA()
+    plot_Em(pca_custom.singular_values_, title='custom PCA')
 
-X_pca = pca.fit_transform(X_synthetic)
+    plt.show()
 
-pca_custom = CustomPCA()
+    print(pca.singular_values_)
 
-X_pca_custom = pca_custom.fit_transform(X_synthetic)
+    print(pca_custom.singular_values_)
 
-print(pca.singular_values_)
 
-print(pca_custom.singular_values_)
+def pca_Em_dataset(X):
+    pca = PCA()
 
-plot_Em(pca.singular_values_, title='Sklearn PCA')
+    X_pca = pca.fit_transform(X)
 
-plot_Em(pca_custom.singular_values_, title='custom PCA')
+    pca_custom = CustomPCA()
 
-plt.show()
+    X_pca_custom = pca_custom.fit_transform(X)
+
+    print(pca.singular_values_)
+
+    print(pca_custom.singular_values_)
+
+    plot_Em(pca.singular_values_, title='Sklearn PCA')
+
+    plot_Em(pca_custom.singular_values_, title='custom PCA')
+
+    plt.show()
+
+    print(pca.singular_values_)
+
+    print(pca_custom.singular_values_)
+
+
+if __name__ == '__main__':
+
+    df = load_and_prepare_data()
+
+    X = df.drop(columns='target')
+
+    y = df['target']
+
+    X = scale_features(X)
+
+    X = X.to_numpy()
+
+    y = y.to_numpy()
+
+    pca_scatter(X, y)
+
+    pca_Em_dataset(X)
+
+    pca_Em_synthetic()

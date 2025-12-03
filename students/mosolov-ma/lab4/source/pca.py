@@ -31,7 +31,7 @@ class CustomPCA:
         U, s, Vt = np.linalg.svd(X, full_matrices=False)
 
         self.components_ = Vt
-        self.singular_values_ = s
+        self.singular_values_ = np.sort(s)[::-1]
 
         return self
 
