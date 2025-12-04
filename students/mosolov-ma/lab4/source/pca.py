@@ -1,21 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def custom_pca(X, n_components=None):
-
-    X_centered = X - np.mean(X, axis=0)
-    
-    U, s, Vt = np.linalg.svd(X_centered, full_matrices=False)
-
-    if n_components is not None:
-        U = U[:, :n_components]
-        s = s[:n_components]
-        Vt = Vt[:n_components, :]
-    
-    X_pca = U * s  
-    
-    return X_pca
-
 
 class CustomPCA:
     def __init__(self, n_components=None):
