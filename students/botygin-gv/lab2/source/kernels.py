@@ -2,4 +2,4 @@ import numpy as np
 
 
 def gaussian_kernel(x):
-    return np.exp(-0.5 * x ** 2)
+    return np.exp(-2 * x ** 2)

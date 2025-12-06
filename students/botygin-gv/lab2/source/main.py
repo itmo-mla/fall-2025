@@ -14,8 +14,8 @@ IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
 
-def compare_with_sklearn(X_train, y_train, X_test, y_test):
-    sk_knn = KNeighborsClassifier(n_neighbors=3)
+def compare_with_sklearn(X_train, y_train, X_test, y_test, k=3):
+    sk_knn = KNeighborsClassifier(n_neighbors=k)
     sk_knn.fit(X_train, y_train)
     sk_pred = sk_knn.predict(X_test)
     sk_accuracy = np.mean(sk_pred == y_test)
@@ -29,7 +29,7 @@ def main():
     X = scaler.fit_transform(X)
 
     # Подбор параметра k методом LOO
-    k_range = range(1, min(31, len(X)))
+    k_range = range(1, min(40, len(X)))
     print("Подбор оптимального k с помощью LOO")
     errors = loo_cross_validation(X, y, k_range, ParzenWindowKNN)
     optimal_k = k_range[np.argmin(errors)]
@@ -38,7 +38,7 @@ def main():
     plot_risk(errors, k_range)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
+        X, y, test_size=0.3, random_state=0, stratify=y
     )
 
     knn = ParzenWindowKNN(k=optimal_k)
@@ -48,7 +48,7 @@ def main():
     print(f"\nТочность ParzenWindowKNN (k={optimal_k}): {accuracy:.4f}")
 
     # Сравнение с sklearn
-    sk_accuracy = compare_with_sklearn(X_train, y_train, X_test, y_test)
+    sk_accuracy = compare_with_sklearn(X_train, y_train, X_test, y_test, k=optimal_k)
     print(f"Точность sklearn KNeighborsClassifier: {sk_accuracy:.4f}")
 
     # Отбор эталонов
