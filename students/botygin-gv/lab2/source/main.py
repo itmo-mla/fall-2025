@@ -29,7 +29,7 @@ def main():
     X = scaler.fit_transform(X)
 
     # Подбор параметра k методом LOO
-    k_range = range(1, min(40, len(X)))
+    k_range = range(1, min(100, len(X)))
     print("Подбор оптимального k с помощью LOO")
     errors = loo_cross_validation(X, y, k_range, ParzenWindowKNN)
     optimal_k = k_range[np.argmin(errors)]
