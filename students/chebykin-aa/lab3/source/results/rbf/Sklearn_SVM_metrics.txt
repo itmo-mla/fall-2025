@@ -1,0 +1,6 @@
+split: test
+Accuracy: 0.9737
+Precision: 0.9726
+Recall: 0.9861
+F1 Score: 0.9793
+
