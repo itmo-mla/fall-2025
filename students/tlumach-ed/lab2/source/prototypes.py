@@ -11,7 +11,7 @@ def loo_error_with_prototypes(X, y, proto_idx, classifier_ctor, **kwargs):
             continue
         clf = classifier_ctor()
         clf.fit(X[protos], y[protos])
-        pred = clf.predict(X[i:i+1])[0]
+        pred = clf.predict(X[i:i+1],k=1)[0]
         if pred != y[i]:
             errs += 1
     return errs / n
