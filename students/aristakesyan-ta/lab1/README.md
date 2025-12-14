@@ -46,7 +46,7 @@
 - Batch size: 32
 - Epochs: 50
 
-**Результат:** Accuracy = **96.49%**
+**Результат:** Accuracy = **95.61%**
 
 ![Функция потерь SGD (Random Init)](images/LF_random.png)
 _График функции потерь при случайной инициализации (Train vs Test)_
