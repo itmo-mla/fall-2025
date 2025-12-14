@@ -15,11 +15,26 @@
 Точность кастомной реализации одинакова с `sklearn.SVC`.
 
 Custom SVM Accuracy: 0.8266666666666667
-
 Sklearn SVM Accuracy: 0.8266666666666667
 
 Границы решений визуализированы на графиках.
 
 ![Мой график](source/Figure_1.png)
 ![Мой график](source/Figure_2.png)
+
+
+
+Custom SVM Accuracy: 0.7066666666666667
+Sklearn SVM Accuracy: 0.8866666666666667
+
+![Мой график](source/Figure_3.png)
+![Мой график](source/Figure_4.png)
+
+Custom SVM Accuracy: 0.88
+Sklearn SVM Accuracy: 0.9733333333333334
+
+![Мой график](source/Figure_5.png)
+![Мой график](source/Figure_6.png)
+
+
 
