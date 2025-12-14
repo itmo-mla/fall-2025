@@ -69,7 +69,7 @@ def visualize_pca_space(X, y):
         plt.xlabel('Первая главная компонента (PC1)')
         plt.ylabel('Вторая главная компонента (PC2)')
         plt.title(name)
-        plt.colorbar(label='Цена дома')
+        plt.colorbar(label='Цифра')
         plt.grid(True, alpha=0.3)
 
     plt.tight_layout()

@@ -32,11 +32,6 @@ def run_data_pipeline(
     df = load_data()
     df = prepare_features(df)
 
-    # Scale features
-    scaler = StandardScaler()
-    train_cols = list(set(df.columns) - {'target'})
-    df[train_cols] = scaler.fit_transform(df[train_cols].to_numpy())
-
     if save_path is not None:
         df.to_csv(save_path, index=False)
 

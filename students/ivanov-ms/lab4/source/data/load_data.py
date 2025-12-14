@@ -1,8 +1,8 @@
 import kagglehub
 import pandas as pd
 
-DATASET_NAME = 'prokshitha/home-value-insights'
-DATA_FILENAME = "house_price_regression_dataset.csv"
+DATASET_NAME = 'oddrationale/mnist-in-csv'
+DATA_FILENAME = "mnist_train.csv"
 
 
 def load_data_from_csv(file_path: str) -> pd.DataFrame:

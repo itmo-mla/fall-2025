@@ -36,6 +36,6 @@ def determine_effective_dimension(X, threshold=0.95):
         'Кумулятивная дисперсия': cumulative_variance
     })
     print("\nИнформация о главных компонентах:")
-    print(components_info.to_string(index=False))
+    print(components_info.head(40).to_string(index=False))
 
     return effective_dim

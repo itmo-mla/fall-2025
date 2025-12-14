@@ -28,9 +28,38 @@ class StandardScaler:
         return X * self._std + self._mean
 
 
+class MinMaxScaler:
+    def __init__(self):
+        self._min = None
+        self._max = None
+
+    def fit(self, X: np.ndarray):
+        self._min = X.min(axis=0, keepdims=True)
+        self._max = X.max(axis=0, keepdims=True)
+
+    def transform(self, X: np.ndarray):
+        if self._min is None or self._max is None:
+            raise ValueError("MinMaxScaler wasn't fitted")
+        return (X - self._min) / np.where(self._max > self._min, (self._max - self._min), 1)
+
+    def fit_transform(self, X: np.ndarray):
+        self.fit(X)
+        return self.transform(X)
+
+    def inverse_transform(self, X: np.ndarray):
+        if self._min is None or self._max is None:
+            raise ValueError("MinMaxScaler wasn't fitted")
+        return X * np.where(self._max > self._min, (self._max - self._min), 1) + self._min
+
+
 def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
     # Rename targets
-    df = df.rename(columns={"House_Price": "target"})
+    df = df.rename(columns={"label": "target"})
+
+    scaler = MinMaxScaler()
+    train_cols = list(set(df.columns) - {'target'})
+    df[train_cols] = scaler.fit_transform(df[train_cols].to_numpy())
+
     return df
 
 
