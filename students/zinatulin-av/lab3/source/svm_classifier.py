@@ -65,18 +65,20 @@ class SVMClassifier:
             options={'maxiter': self.max_iter, 'ftol': self.tol}
         )
         
-        support_vector_mask = result.x > self.threshold
+        sv_mask = result.x > self.threshold
         
-        self.support_vectors = X[support_vector_mask]
-        self.support_vector_labels = y[support_vector_mask]
-        self.lambdas = result.x[support_vector_mask]
+        self.support_vectors = X[sv_mask]
+        self.support_vector_labels = y[sv_mask]
+        self.lambdas = result.x[sv_mask]
         
         K_sv = self.kernel.compute(self.support_vectors, self.support_vectors)
+        w_dot_x = np.dot(K_sv, self.lambdas * self.support_vector_labels)
+        
+        boundary_idx = self.lambdas < (self.C - 1e-5)
         self.w0 = np.mean(
-            self.support_vector_labels - 
-            np.sum(self.lambdas * self.support_vector_labels * K_sv, axis=0)
+            self.support_vector_labels[boundary_idx] - w_dot_x[boundary_idx]
         )
-    
+
     def predict(self, X):
         K = self.kernel.compute(self.support_vectors, X)
         decision_values = np.sum(
