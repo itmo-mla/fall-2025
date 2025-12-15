@@ -1,465 +1,408 @@
-from typing import Literal, Optional
-from pydantic import BaseModel
+# lab1_linear_sgd_step_by_step.py
+# Один файл. Задания выполняются ПО ПОРЯДКУ, каждый шаг — отдельная функция train_step_X()
+
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.linear_model import SGDClassifier
+import os
 
 
-class LinearClassifierConfig(BaseModel):
-    """Конфигурация линейного классификатора"""
-    # Базовые параметры
-    learning_rate: float = 0.01
-    max_iterations: int = 1000
-    tolerance: float = 1e-6
-
-    # Реализованные методы (ВКЛ/ВЫКЛ)
-    use_momentum: bool = False  # Инерция
-    momentum: float = 0.9
-
-    use_regularization: bool = False  # L2 регуляризация
-    reg_coefficient: float = 0.01
-
-    use_stochastic: bool = False  # Стохастический градиент
-    batch_size: int = 1
-
-    use_recursive_q: bool = False  # Рекуррентная оценка Q
-    lambda_forget: float = 0.05
-
-    use_fastest_descent: bool = False  # Скорейший спуск
-
-    use_margin_sampling: bool = False  # Предъявление по модулю отступа
-
-    # Стратегии инициализации и обучения
-    initialization: Literal["correlation", "random"] = "correlation"
-    random_init_std: float = 0.01
-
-
-class LinearClassifier:
-    """
-    Линейный классификатор с модульной архитектурой
-    Каждая фича включается/выключается через конфиг
-    """
-
-    def __init__(self, config: LinearClassifierConfig = LinearClassifierConfig()):
-        self.config = config
-        self.w = None
-        self.loss_history = []
-        self.margin_history = []
-        self.velocity = None  # Для инерции
-
-    # ==========================================================================
-    # РЕАЛИЗАЦИЯ: Вычисление отступа объекта
-    # ==========================================================================
-    def _margin(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
-        """
-        ВЫЧИСЛЕНИЕ ОТСТУПА ОБЪЕКТА
-        M_i = y_i * (w·x_i) - отступ объекта x_i
-        """
-        return y * (X @ self.w)
-
-    # ==========================================================================
-    # РЕАЛИЗАЦИЯ: Вычисление градиента функции потерь
-    # ==========================================================================
-    def _loss_gradient(self, X: np.ndarray, y: np.ndarray, margin: np.ndarray) -> np.ndarray:
-        """
-        ВЫЧИСЛЕНИЕ ГРАДИЕНТА ФУНКЦИИ ПОТЕРЬ
-        ∇Q(w) = -X^T @ ((1 - margin) * y) / n + λw (если регуляризация)
-        """
-        # Градиент квадратичной функции потерь
-        grad = -X.T @ ((1 - margin) * y) / len(y)
-
-        # ======================================================================
-        # РЕАЛИЗАЦИЯ: L2 регуляризация
-        # ======================================================================
-        if self.config.use_regularization:
-            grad += self.config.reg_coefficient * self.w
-
-        return grad
-
-    def _loss(self, margin: np.ndarray) -> float:
-        """Функция потерь с опциональной L2 регуляризацией"""
-        loss = 0.5 * np.mean((1 - margin) ** 2)
-
-        if self.config.use_regularization:
-            loss += 0.5 * self.config.reg_coefficient * np.sum(self.w ** 2)
-
-        return loss
-
-    # ==========================================================================
-    # РЕАЛИЗАЦИЯ: Скорейший градиентный спуск
-    # ==========================================================================
-    def _fastest_descent_step(self, X: np.ndarray) -> float:
-        """
-        СКОРЕЙШИЙ ГРАДИЕНТНЫЙ СПУСК
-        Оптимальный шаг для квадратичной функции потерь: h* = 1/||x||^2
-        """
-        if len(X.shape) == 1:
-            step = 1.0 / (np.sum(X * X) + 1e-8)
-        else:
-            norms_sq = np.sum(X * X, axis=1)
-            step = 1.0 / (np.mean(norms_sq) + 1e-8)
-
-        return np.clip(step, 1e-8, 1.0)
-
-    # ==========================================================================
-    # РЕАЛИЗАЦИЯ: Предъявление объектов по модулю отступа
-    # ==========================================================================
-    def _sample_by_margin(self, X: np.ndarray, y: np.ndarray, margins: np.ndarray) -> tuple:
-        """
-        ПРЕДЪЯВЛЕНИЕ ОБЪЕКТОВ ПО МОДУЛЮ ОТСТУПА
-        Вероятность выбора объекта обратно пропорциональна |margin|
-        """
-        weights = 1.0 / (np.abs(margins) + 1e-8)  # Обратно пропорционально отступу
-        weights /= weights.sum()  # Нормализация
-        indices = np.random.choice(len(X), size=self.config.batch_size, p=weights)
-        return X[indices], y[indices]
-
-    def _initialize_weights(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
-        """Инициализация весов (корреляция или случайная)"""
-        if self.config.initialization == "correlation":
-            return np.array([np.corrcoef(X[:, j], y)[0, 1] for j in range(X.shape[1])])
-        else:
-            return np.random.normal(0, self.config.random_init_std, X.shape[1])
-
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "LinearClassifier":
-        """
-        ОБУЧЕНИЕ ЛИНЕЙНОГО КЛАССИФИКАТОРА
-        Поддерживает разные стратегии через конфиг
-        """
-        # 1. Инициализация весов
-        self.w = self._initialize_weights(X, y)
-
-        # ======================================================================
-        # РЕАЛИЗАЦИЯ: Метод стохастического градиентного спуска с инерцией
-        # ======================================================================
-        if self.config.use_momentum:
-            self.velocity = np.zeros_like(self.w)  # инициализация "скорости" для инерции
-
-        self.loss_history = []
-        self.margin_history = []
-
-        # Инициализация функционала качества
-        current_margins = self._margin(X, y)
-        Q = self._loss(current_margins)
-        self.loss_history.append(Q)
-
-        # ======================================================================
-        # РЕАЛИЗАЦИЯ: Рекуррентная оценка функционала качества
-        # ======================================================================
-        if self.config.use_recursive_q:
-            # Инициализация Q по случайному подмножеству
-            init_size = min(100, len(X))  # размер выборки
-            init_indices = np.random.choice(len(X), init_size, replace=False)
-            init_margins = self._margin(X[init_indices], y[init_indices])
-            Q = self._loss(init_margins)
-            self.loss_history = [Q]
-
-        for iteration in range(self.config.max_iterations):
-            # ==================================================================
-            # ВЫБОР РЕЖИМА ОБУЧЕНИЯ: стохастический или полный градиент
-            # ==================================================================
-            if self.config.use_stochastic:
-                # СТОХАСТИЧЕСКИЙ ГРАДИЕНТНЫЙ СПУСК
-                if self.config.use_margin_sampling:
-                    # Предъявление по модулю отступа
-                    current_margins = self._margin(X, y)
-                    X_batch, y_batch = self._sample_by_margin(X, y, current_margins)
-                else:
-                    # Случайное предъявление
-                    indices = np.random.choice(len(X), self.config.batch_size, replace=False)
-                    X_batch, y_batch = X[indices], y[indices]
-            else:
-                # ПОЛНЫЙ ГРАДИЕНТНЫЙ СПУСК (вся выборка)
-                X_batch, y_batch = X, y
-
-            # Вычисление отступов и потерь
-            margins_batch = self._margin(X_batch, y_batch)
-            current_loss = self._loss(margins_batch)
-
-            # ================================================================
-            # РЕКУРРЕНТНАЯ ОЦЕНКА Q (если включена)
-            # ================================================================
-            if self.config.use_recursive_q:
-                Q = self.config.lambda_forget * current_loss + (1 - self.config.lambda_forget) * Q
-                self.loss_history.append(Q)
-            else:
-                self.loss_history.append(current_loss)
-
-            # Вычисление градиента
-            grad = self._loss_gradient(X_batch, y_batch, margins_batch)
-
-            # ================================================================
-            # ВЫБОР LEARNING RATE: обычный или скорейший спуск
-            # ================================================================
-            if self.config.use_fastest_descent:
-                lr = self._fastest_descent_step(X_batch)
-            else:
-                lr = self.config.learning_rate
-
-            # ================================================================
-            # ОБНОВЛЕНИЕ ВЕСОВ: с инерцией или без
-            # ================================================================
-            if self.config.use_momentum:
-                self.velocity = self.config.momentum * self.velocity - lr * grad
-                w_new = self.w + self.velocity
-            else:
-                w_new = self.w - lr * grad
-
-            # Критерий остановки
-            if np.linalg.norm(w_new - self.w) < self.config.tolerance:
-                break
-
-            self.w = w_new
-
-            # Сохранение отступов для анализа
-            if iteration % 50 == 0:
-                self.margin_history.append(self._margin(X, y).copy())
-
-        # Финальные отступы
-        self.margin_history.append(self._margin(X, y))
-        return self
-
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        """Предсказание классов"""
-        return np.where(X @ self.w >= 0, 1, -1)
-
-
-# ==============================================================================
-# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ЭКСПЕРИМЕНТОВ
-# ==============================================================================
-
-def multi_start_fit(config: LinearClassifierConfig, X: np.ndarray, y: np.ndarray,
-                    n_restarts: int = 5) -> LinearClassifier:
-    """
-    ОБУЧЕНИЕ СО СЛУЧАЙНОЙ ИНИЦИАЛИЗАЦИЕЙ ВЕСОВ ЧЕРЕЗ МУЛЬТИСТАРТ
-    """
-    best_model = None
-    best_loss = float('inf')
-
-    for restart in range(n_restarts):
-        current_config = config.model_copy()
-        if restart > 0:
-            current_config.initialization = "random"
-
-        model = LinearClassifier(current_config)
-        model.fit(X, y)
-
-        current_loss = model.loss_history[-1]
-        if current_loss < best_loss:
-            best_loss = current_loss
-            best_model = model
-
-    return best_model
-
-
-def evaluate_model(model: LinearClassifier, X: np.ndarray, y: np.ndarray) -> dict:
-    """Вычисление метрик качества"""
-    predictions = model.predict(X)
-    y_true = np.where(y == -1, 0, 1)
-    y_pred = np.where(predictions == -1, 0, 1)
-
-    return {
-        'accuracy': f"{accuracy_score(y_true, y_pred):.3f}",
-        'recall': f"{recall_score(y_true, y_pred, zero_division=0):.3f}",
-        'precision': f"{precision_score(y_true, y_pred, zero_division=0):.3f}",
-        'f1': f"{f1_score(y_true, y_pred, zero_division=0):.3f}"
-    }
-
-
-def visualize_loss_and_margins(model, X, y, title):
-    """
-    Визуализация лоссов и маржинов вместе
-    """
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-
-    # График лоссов
-    ax1.plot(model.loss_history)
-    ax1.set_title(f'{title} - История потерь')
-    ax1.set_xlabel('Итерация')
-    ax1.set_ylabel('Функционал качества Q(w)')
-    ax1.grid(True, alpha=0.3)
-
-    # График маржинов
-    margins = model._margin(X, y)
-    sorted_margins = np.sort(margins)
-    colors = ['red' if m < -0.5 else 'yellow' if m < 0.5 else 'green' for m in sorted_margins]
-
-    ax2.scatter(range(len(sorted_margins)), sorted_margins, c=colors, alpha=0.6, s=20)
-    ax2.axhline(y=0, color='black', linestyle='-', linewidth=2)
-    ax2.axhline(y=0.5, color='blue', linestyle='--', alpha=0.7)
-    ax2.axhline(y=-0.5, color='blue', linestyle='--', alpha=0.7)
-    ax2.set_xlabel('Ранг объекта')
-    ax2.set_ylabel('Отступ')
-    ax2.set_title(f'{title} - Распределение отступов')
-    ax2.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.show()
-
-
-def run_experiments(X, y):
-    """Запуск всех экспериментов согласно заданию"""
-
-    print("=" * 60)
-    print("ЭКСПЕРИМЕНТЫ ПО ЗАДАНИЮ")
-    print("=" * 60)
-
-    # 1. БАЗОВАЯ МОДЕЛЬ: обычный градиентный спуск
-    print("\n1. ОБУЧИТЬ ЛИНЕЙНЫЙ КЛАССИФИКАТОР (базовый)")
-    config1 = LinearClassifierConfig(
-        use_stochastic=False,  # Полный градиент
-        use_momentum=False,
-        use_regularization=False,
-        initialization="correlation"
-    )
-    model1 = LinearClassifier(config1)
-    model1.fit(X, y)
-    metrics1 = evaluate_model(model1, X, y)
-    print(f"Метрики: {metrics1}")
-    print(f"Финальный лосс: {model1.loss_history[-1]:.4f}")
-    visualize_loss_and_margins(model1, X, y, "Базовый классификатор")
-
-    # 2. КОРРЕЛЯЦИОННАЯ ИНИЦИАЛИЗАЦИЯ
-    print("\n2. ОБУЧИТЬ С ИНИЦИАЛИЗАЦИЕЙ ВЕСОВ ЧЕРЕЗ КОРРЕЛЯЦИЮ")
-    config2 = LinearClassifierConfig(
-        use_stochastic=False,
-        initialization="correlation"
-    )
-    model2 = LinearClassifier(config2)
-    model2.fit(X, y)
-    metrics2 = evaluate_model(model2, X, y)
-    print(f"Метрики: {metrics2}")
-    print(f"Финальный лосс: {model2.loss_history[-1]:.4f}")
-    visualize_loss_and_margins(model2, X, y, "Инициализация через корреляцию")
-
-    # 3. СЛУЧАЙНАЯ ИНИЦИАЛИЗАЦИЯ + МУЛЬТИСТАРТ
-    print("\n3. ОБУЧИТЬ СО СЛУЧАЙНОЙ ИНИЦИАЛИЗАЦИЕЙ ВЕСОВ ЧЕРЕЗ МУЛЬТИСТАРТ")
-    config3 = LinearClassifierConfig(
-        use_stochastic=False,
-        initialization="random"
-    )
-    model3 = multi_start_fit(config3, X, y, n_restarts=5)
-    metrics3 = evaluate_model(model3, X, y)
-    print(f"Метрики: {metrics3}")
-    print(f"Финальный лосс: {model3.loss_history[-1]:.4f}")
-    visualize_loss_and_margins(model3, X, y, "Случайная инициализация + мультистарт")
-
-    # 4. СЛУЧАЙНОЕ ПРЕДЪЯВЛЕНИЕ (стохастический режим)
-    print("\n4. ОБУЧИТЬ СО СЛУЧАЙНЫМ ПРЕДЪЯВЛЕНИЕМ")
-    config4 = LinearClassifierConfig(
-        use_stochastic=True,  # Включаем стохастический режим
-        use_margin_sampling=False,  # Случайные батчи
-        batch_size=32
-    )
-    model4 = LinearClassifier(config4)
-    model4.fit(X, y)
-    metrics4 = evaluate_model(model4, X, y)
-    print(f"Метрики: {metrics4}")
-    print(f"Финальный лосс: {model4.loss_history[-1]:.4f}")
-    visualize_loss_and_margins(model4, X, y, "Случайное предъявление")
-
-    # 5. ПРЕДЪЯВЛЕНИЕ ПО МОДУЛЮ ОТСТУПА
-    print("\n5. ОБУЧИТЬ С ПРЕДЪЯВЛЕНИЕМ ОБЪЕКТОВ ПО МОДУЛЮ ОТСТУПА")
-    config5 = LinearClassifierConfig(
-        use_stochastic=True,  # Стохастический режим
-        use_margin_sampling=True,  # Включаем выборку по отступам
-        batch_size=32
-    )
-    model5 = LinearClassifier(config5)
-    model5.fit(X, y)
-    metrics5 = evaluate_model(model5, X, y)
-    print(f"Метрики: {metrics5}")
-    print(f"Финальный лосс: {model5.loss_history[-1]:.4f}")
-    visualize_loss_and_margins(model5, X, y, "Выборка по отступам")
-
-    print("\n6. СТОХАСТИЧЕСКИЙ ГРАДИЕНТНЫЙ СПУСК С ИНЕРЦИЕЙ")
-    config6 = LinearClassifierConfig(
-        use_stochastic=True,  # Включаем стохастический режим
-        use_momentum=True,  # ВКЛЮЧАЕМ ИНЕРЦИЮ
-        momentum=0.9,  # Коэффициент инерции
-        use_margin_sampling=False,  # Случайные батчи
-        batch_size=32,
-        use_recursive_q=True,  # Рекуррентная оценка Q для стохастического режима
-        lambda_forget=0.05
-    )
-    model6 = LinearClassifier(config5)
-    model6.fit(X, y)
-    metrics6 = evaluate_model(model6, X, y)
-    print(f"Метрики: {metrics6}")
-    print(f"Финальный лосс: {model6.loss_history[-1]:.4f}")
-    visualize_loss_and_margins(model6, X, y, "Стохастический спуск с инерцией")
-
-    return {
-        "Базовый": (model1, metrics1),
-        "Корреляционная инициализация": (model2, metrics2),
-        "Случайная инициализация (мультистарт)": (model3, metrics3),
-        "Случайное предъявление": (model4, metrics4),
-        "По модулю отступа": (model5, metrics5),
-        "Стохастический град спуск с инерцией": (model6, metrics6)
-    }
-
-
-def compare_with_sklearn(X, y):
-    """
-    Сравнение с sklearn SGDClassifier
-    """
-    print("\n" + "=" * 60)
-    print("СРАВНЕНИЕ С SKLEARN SGDClassifier")
-    print("=" * 60)
-
-    # Обучаем SGDClassifier с квадратными потерями
-    sk_model = SGDClassifier(
-        loss='squared_hinge',  # Квадратичные потери как у нас
-        penalty='l2',  # L2 регуляризация
-        alpha=0.01,  # Коэффициент регуляризации
-        learning_rate='constant',  # Постоянная скорость обучения
-        eta0=0.01,  # Скорость обучения
-        max_iter=1000,
-        tol=1e-6,
-        random_state=42
-    )
-
-    sk_model.fit(X, y)
-
-    # Предсказания и метрики
-    sk_pred = sk_model.predict(X)
-    y_true = np.where(y == -1, 0, 1)
-    y_pred = np.where(sk_pred == -1, 0, 1)
-
-    sk_metrics = {
-        'accuracy': round(accuracy_score(y_true, y_pred), 3),
-        'recall': round(recall_score(y_true, y_pred, zero_division=0), 3),
-        'precision': round(precision_score(y_true, y_pred, zero_division=0), 3),
-        'f1': round(f1_score(y_true, y_pred, zero_division=0), 3)
-    }
-
-    print(f"Sklearn SGDClassifier метрики: {sk_metrics}")
-
-    # Визуализация отступов sklearn (decision function)
-    sk_scores = sk_model.decision_function(X)
-
-    plt.figure(figsize=(10, 5))
-    sorted_scores = np.sort(sk_scores)
-    colors = ['red' if s < -0.5 else 'yellow' if s < 0.5 else 'green' for s in sorted_scores]
-
-    plt.scatter(range(len(sorted_scores)), sorted_scores, c=colors, alpha=0.6, s=20)
-    plt.axhline(y=0, color='black', linestyle='-', linewidth=2)
-    plt.axhline(y=0.5, color='blue', linestyle='--', alpha=0.7)
-    plt.axhline(y=-0.5, color='blue', linestyle='--', alpha=0.7)
-    plt.xlabel('Ранг объекта')
-    plt.ylabel('Decision Score')
-    plt.title('Sklearn SGDClassifier - Распределение decision scores')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # папка, где лежит lab1.py
+IMAGES_DIR = os.path.join(BASE_DIR, "images")
+
+# DATASET
+def load_data(path="lab1/data.csv"):
+    df = pd.read_csv(path)
+    df = df.drop(columns=["id", "Unnamed: 32"], errors="ignore")
+
+    y = df["diagnosis"].map({"M": 1, "B": -1}).values
+    X = df.drop(columns=["diagnosis"]).values.astype(float)
+
+    return X, y
+
+def standardize_train_test(Xtr, Xte):
+    mu = Xtr.mean(axis=0)
+    sigma = Xtr.std(axis=0) + 1e-12
+    return (Xtr - mu) / sigma, (Xte - mu) / sigma
+
+def add_bias(X):
+    # bias-feature = -1 (как в лекции)
+    return np.hstack([-np.ones((X.shape[0], 1)), X])
+
+
+# margin, loss, grad
+
+def margins(X, y, w):
+    # Задание 2: M_i = y_i * <x_i, w>
+    return y * (X @ w)
+
+def hinge_loss(m):
+    # hinge: max(0, 1 - M)
+    return np.maximum(0.0, 1.0 - m)
+
+def loss_value(X, y, w):
+    # обычный (не-EMA) лосс по всей выборке
+    m = margins(X, y, w)
+    return hinge_loss(m).mean()
+
+def grad_hinge_one(x_i, y_i, w):
+    # Задание 3: градиент hinge по одному объекту
+    # L = max(0, 1 - y<w,x>)
+    # если 1 - y<w,x> > 0 => grad = -y*x
+    # иначе 0
+    margin = y_i * (x_i @ w)
+    if margin < 1.0:
+        return -y_i * x_i
+    return np.zeros_like(w)
+
+
+# =============================================================================
+# 2) Визуализация отступов (Задание 2)
+# =============================================================================
+
+def plot_sorted_margins(X, y, w, title, filename):
+    M = margins(X, y, w)
+    M_sorted = np.sort(M)
+
+    plt.figure(figsize=(10, 4))
+    plt.scatter(range(len(M_sorted)), M_sorted, s=10, alpha=0.7)
+    plt.axhline(0.0, linewidth=2)
+    plt.axhline(1.0, linestyle="--", alpha=0.7)
+    plt.title(title)
+    plt.xlabel("Object rank")
+    plt.ylabel("Margin")
     plt.grid(True, alpha=0.3)
-    plt.show()
+    plt.tight_layout()
 
-    return sk_model, sk_metrics
+    path = os.path.join(IMAGES_DIR, filename)
+    plt.savefig(path, dpi=150)
+    plt.close()
 
 
-# Использование
+# БАЗОВЫЙ SGD
+def sgd_basic(X, y, lr=1e-2, epochs=5, seed=42):
+    """
+    Задание 9 (частично): обучить линейный классификатор.
+    Это САМЫЙ базовый SGD:
+      - случайный объект
+      - шаг w := w - lr * grad
+      - сохраняем обычный loss по всей выборке (для графика)
+    """
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.01, size=X.shape[1])
+
+    loss_hist = []
+
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = rng.integers(0, n)
+            g = grad_hinge_one(X[i], y[i], w)
+            w -= lr * g
+
+        loss_hist.append(loss_value(X, y, w))
+
+    return w, loss_hist
+
+
+# Рекуррентная оценка функционала качества (EMA)
+
+def sgd_with_ema(X, y, lr=1e-2, epochs=5, ema_lambda=0.05, seed=42):
+    """
+    Добавляем Задание 4: EMA(Q)
+    Q := lambda * xi + (1-lambda)*Q, где xi - loss на текущем объекте (или батче).
+    Параллельно оставляем обычный loss по эпохам.
+    """
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.01, size=X.shape[1])
+
+    loss_hist = []      # обычный loss по эпохам
+    q_ema_hist = []     # EMA по шагам (можно прореживать для графика)
+
+    # инициализация Q по случайным объектам
+    idx0 = rng.choice(len(X), size=min(32, len(X)), replace=False)
+    q = hinge_loss(margins(X[idx0], y[idx0], w)).mean()
+    q_ema_hist.append(q)
+
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = rng.integers(0, n)
+
+            # шаг SGD
+            g = grad_hinge_one(X[i], y[i], w)
+            w -= lr * g
+
+            # xi = loss на текущем объекте
+            mi = y[i] * (X[i] @ w)
+            xi = max(0.0, 1.0 - mi)
+            q = ema_lambda * xi + (1.0 - ema_lambda) * q
+            q_ema_hist.append(q)
+
+        loss_hist.append(loss_value(X, y, w))
+
+    return w, loss_hist, q_ema_hist
+
+
+# SGD с инерцией (Momentum)
+def sgd_with_momentum(X, y, lr=1e-2, epochs=5, gamma=0.9, seed=42):
+    """
+    v := gamma*v + (1-gamma)*grad
+    w := w - lr*v
+    """
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.01, size=X.shape[1])
+    v = np.zeros_like(w)
+
+    loss_hist = []
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = rng.integers(0, n)
+            g = grad_hinge_one(X[i], y[i], w)
+            v = gamma * v + (1.0 - gamma) * g
+            w -= lr * v
+
+        loss_hist.append(loss_value(X, y, w))
+
+    return w, loss_hist
+
+
+# L2 регуляризация
+def grad_hinge_one_l2(x_i, y_i, w, tau):
+    g = grad_hinge_one(x_i, y_i, w)
+
+    # + tau*w (обычно bias не регуляризуют)
+    reg = tau * w.copy()
+    reg[0] = 0.0
+    return g + reg
+
+def sgd_with_l2(X, y, lr=1e-2, epochs=5, tau=1e-2, seed=42):
+    """
+    Добавляем L2:
+      L_total = hinge + (tau/2)||w||^2
+      grad += tau*w
+    """
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.01, size=X.shape[1])
+
+    loss_hist = []
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = rng.integers(0, n)
+            g = grad_hinge_one_l2(X[i], y[i], w, tau)
+            w -= lr * g
+
+        # считаем полный loss (hinge + l2)
+        base = loss_value(X, y, w)
+        l2 = 0.5 * tau * np.sum(w[1:] ** 2)
+        loss_hist.append(base + l2)
+
+    return w, loss_hist
+
+
+# Скорейший градиентный спуск
+def sgd_fastest(X, y, epochs=5, seed=42):
+    """
+    Для одного объекта: h* = 1 / ||x||^2
+    """
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.01, size=X.shape[1])
+
+    loss_hist = []
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = rng.integers(0, n)
+            x_i, y_i = X[i], y[i]
+            g = grad_hinge_one(x_i, y_i, w)
+
+            h = 1.0 / (np.dot(x_i, x_i) + 1e-12)
+            w -= h * g
+
+        loss_hist.append(loss_value(X, y, w))
+
+    return w, loss_hist
+
+
+# Предъявление по модулю отступа
+def choose_index_by_margin_abs(X, y, w, rng):
+    M_abs = np.abs(margins(X, y, w))
+    probs = 1.0 / (M_abs + 1e-6)
+    probs /= probs.sum()
+    return rng.choice(len(X), p=probs)
+
+def sgd_margin_sampling(X, y, lr=1e-2, epochs=5, seed=42):
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.01, size=X.shape[1])
+
+    loss_hist = []
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = choose_index_by_margin_abs(X, y, w, rng)
+            g = grad_hinge_one(X[i], y[i], w)
+            w -= lr * g
+
+        loss_hist.append(loss_value(X, y, w))
+
+    return w, loss_hist
+
+
+# Инициализация через корреляцию
+def init_weights_corr(X, y, eps=1e-12):
+    # w_j := <y, f_j> / <f_j, f_j>
+    w = np.zeros(X.shape[1])
+    for j in range(1, X.shape[1]):
+        fj = X[:, j]
+        w[j] = (y @ fj) / (fj @ fj + eps)
+    return w
+
+def sgd_with_corr_init(X, y, lr=1e-2, epochs=5, seed=42):
+    rng = np.random.default_rng(seed)
+    w = init_weights_corr(X, y)
+
+    loss_hist = []
+    n = len(X)
+    for _ in range(epochs):
+        for _ in range(n):
+            i = rng.integers(0, n)
+            g = grad_hinge_one(X[i], y[i], w)
+            w -= lr * g
+        loss_hist.append(loss_value(X, y, w))
+
+    return w, loss_hist
+
+
+# Мультистарт
+def multistart_best(X, y, n_starts=10, lr=1e-2, epochs=5, seed=42):
+    rng = np.random.default_rng(seed)
+    best_w = None
+    best_loss = np.inf
+
+    for k in range(n_starts):
+        w0 = rng.normal(0, 0.01, size=X.shape[1])
+        w = w0.copy()
+
+        n = len(X)
+        for _ in range(epochs):
+            for _ in range(n):
+                i = rng.integers(0, n)
+                g = grad_hinge_one(X[i], y[i], w)
+                w -= lr * g
+
+        L = loss_value(X, y, w)
+        if L < best_loss:
+            best_loss = L
+            best_w = w.copy()
+
+    return best_w, best_loss
+
+
+# Метрики + сравнение со sklearn
+
+def eval_metrics(X, y, w, name):
+    y_pred = np.sign(X @ w)
+    print(f"\n[{name}]")
+    print(f"Accuracy : {accuracy_score(y, y_pred):.3f}")
+    print(f"Precision: {precision_score(y, y_pred, pos_label=1):.3f}")
+    print(f"Recall   : {recall_score(y, y_pred, pos_label=1):.3f}")
+    print(f"F1       : {f1_score(y, y_pred, pos_label=1):.3f}")
+
+def plot_losses(loss_hist, title, filename):
+    plt.figure(figsize=(8, 4))
+    plt.plot(loss_hist)
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    path = os.path.join(IMAGES_DIR, filename)
+    plt.savefig(path, dpi=150)
+    plt.close()
+
+def plot_ema(q_ema_hist, title, filename, step=10):
+    plt.figure(figsize=(8, 4))
+    plt.plot(q_ema_hist[::step])
+    plt.title(title)
+    plt.xlabel(f"SGD steps (/{step})")
+    plt.ylabel("Q (EMA)")
+    plt.yscale("log")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    path = os.path.join(IMAGES_DIR, filename)
+    plt.savefig(path, dpi=150)
+    plt.close()
+
+# MAIN: запускаем по порядку заданий
+def main():
+    X, y = load_data("lab1/data.csv")
+
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+    Xtr, Xte = standardize_train_test(Xtr, Xte)
+    Xtr, Xte = add_bias(Xtr), add_bias(Xte)
+
+    # --- ШАГ 1: базовый SGD (без всего)
+    w1, loss1 = sgd_basic(Xtr, ytr, lr=1e-2, epochs=10)
+    plot_losses(loss1, "Basic SGD loss", "sgd_basic_loss.png")
+    eval_metrics(Xte, yte, w1, "STEP1: Basic SGD")
+    plot_sorted_margins(Xte, yte, w1, "Basic SGD margins", "sgd_basic_margins.png")
+
+
+    # --- ШАГ 2: добавили EMA (рекуррентная оценка)
+    w2, loss2, q2 = sgd_with_ema(Xtr, ytr, lr=1e-2, epochs=10, ema_lambda=0.05)
+    plot_losses(loss2, "SGD + EMA loss", "sgd_ema_loss.png")
+    plot_ema(q2, "SGD + EMA (Q)", "sgd_ema_q.png")
+    eval_metrics(Xte, yte, w2, "STEP2: SGD + EMA")
+
+    # --- ШАГ 3: momentum
+    w3, loss3 = sgd_with_momentum(Xtr, ytr, lr=1e-2, epochs=10, gamma=0.9)
+    plot_losses(loss3, "SGD with Momentum", "sgd_momentum.png")
+    eval_metrics(Xte, yte, w3, "STEP3: SGD + Momentum")
+
+    # --- ШАГ 4: L2
+    w4, loss4 = sgd_with_l2(Xtr, ytr, lr=1e-2, epochs=10, tau=1e-2)
+    plot_losses(loss4, "SGD with L2", "sgd_l2.png")
+    eval_metrics(Xte, yte, w4, "STEP4: SGD + L2")
+
+    # --- ШАГ 5: fastest descent
+    w5, loss5 = sgd_fastest(Xtr, ytr, epochs=10)
+    plot_losses(loss5, "Fastest descent", "sgd_fastest.png")
+    eval_metrics(Xte, yte, w5, "STEP5: Fastest Descent")
+
+    # --- ШАГ 6: margin-abs sampling
+    w6, loss6 = sgd_margin_sampling(Xtr, ytr, lr=1e-2, epochs=10)
+    plot_losses(loss6, "Margin-based sampling", "sgd_margin_sampling.png")
+    eval_metrics(Xte, yte, w6, "STEP6: Margin-abs sampling")
+
+    # --- ШАГ 7: correlation init
+    w7, loss7 = sgd_with_corr_init(Xtr, ytr, lr=1e-2, epochs=10)
+    plot_losses(loss7, "Correlation init", "sgd_corr_init.png")
+    eval_metrics(Xte, yte, w7, "STEP7: Corr init + SGD")
+
+    # --- ШАГ 8: multistart
+    w8, bestL = multistart_best(Xtr, ytr, n_starts=10, lr=1e-2, epochs=10)
+    print(f"\n[STEP8: Multistart] best train loss={bestL:.6f}")
+    eval_metrics(Xte, yte, w8, "STEP8: Multistart best")
+
+    # --- Эталон: sklearn
+    skl = SGDClassifier(loss="hinge", penalty="l2", alpha=1e-2, learning_rate="constant",
+                        eta0=1e-2, max_iter=2000, random_state=42)
+    skl.fit(Xtr, ytr)
+    y_pred = skl.predict(Xte)
+    print("\n[SKLEARN REF]")
+    print(f"Accuracy :  {accuracy_score(yte, y_pred):.3f}")
+    print(f"Precision: {precision_score(yte, y_pred, pos_label=1):.3f}")
+    print(f"Recall   :  {recall_score(yte, y_pred, pos_label=1):.3f}")
+    print(f"F1       : {f1_score(yte, y_pred, pos_label=1):.3f}")
+
+
 if __name__ == "__main__":
-    # Запуск экспериментов с нашими моделями
-    results = run_experiments(X_normalized, y)
-
-    # Сравнение с sklearn
-    sk_model, sk_metrics = compare_with_sklearn(X_normalized, y)
+    main()
