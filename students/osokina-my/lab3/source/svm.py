@@ -88,7 +88,8 @@ class SVM:
     def predict(self, X):
         """Вычисление f(x) = Σ α_i y_i K(x_i, x) + w0"""
         K = self.kernel.compute(self.support_vectors, X)
-        return np.sign(np.dot(self.support_alpha * self.support_labels, K) + self.w0)
+        decision = np.dot(self.support_alpha * self.support_labels, K) + self.w0
+        return np.where(decision >= 0, 1, -1).astype(int)
 
     @property
     def n_support_vectors(self):
