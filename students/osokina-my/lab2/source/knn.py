@@ -12,7 +12,7 @@ class KNNParzen:
         self.kernel = KERNELS[kernel]
         self.class_counts = None
 
-    def fit(self, X, y, class_counts=None):
+    def fit(self, X, y):
         """Обучение модели"""
         self.X_train = X
         self.y_train = y
