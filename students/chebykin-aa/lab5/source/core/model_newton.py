@@ -4,7 +4,7 @@ import logging
 from .utils import sigmoid
 
 class OwnLogisticRegressionNewtonRafson:
-    def __init__(self, max_iter: int = 100, tol: float = 1e-6, reg: float = 1e-4):
+    def __init__(self, max_iter: int = 100, tol: float = 1e-6, reg: float = 1e-6):
         self.max_iter = max_iter
         self.tol = tol
         self.reg = reg
@@ -35,7 +35,7 @@ class OwnLogisticRegressionNewtonRafson:
             # Считаем гессиан
             hessian = X_ext.T @ W @ X_ext
 
-            # Демпфирование
+            # Делаем демпфирование(конролируем шаг оптимизации)
             hessian += self.reg * np.eye(n_features + 1)
 
             # Решаем систему уравнений

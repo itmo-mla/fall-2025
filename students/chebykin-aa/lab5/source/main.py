@@ -12,12 +12,14 @@ from sklearn.linear_model import LogisticRegression
 
 from core.model_newton import OwnLogisticRegressionNewtonRafson
 from core.model_irls import OwnLogisticRegressionIRLS
-from core.utils import calculate_metrics, plot_probabilities
+from core.utils import calculate_metrics
 
 
 def main():
     # Зафиксируем seed и другие гиперпараметры
     SEED = 42
+    TOL = 1e-6
+    MAX_ITER = 1000
     np.random.seed(SEED)
     random.seed(SEED)
 
@@ -60,11 +62,10 @@ def main():
     )
 
     # Обучение и тестирование LR NewtonRafson
-    model_newton = OwnLogisticRegressionNewtonRafson(max_iter=1000)
+    model_newton = OwnLogisticRegressionNewtonRafson(max_iter = MAX_ITER, tol = TOL)
     model_newton.fit(X_train, y_train)
 
     preds_newton = model_newton.predict(X_test)
-    probs_newton = model_newton.predict_proba(X_test)
 
     calculate_metrics(
         preds_newton, 
@@ -73,11 +74,10 @@ def main():
     )
 
     # Обучение и тестирование LR IRLS
-    model_irls = OwnLogisticRegressionIRLS(max_iter=1000)
+    model_irls = OwnLogisticRegressionIRLS(max_iter = MAX_ITER, tol = TOL)
     model_irls.fit(X_train, y_train)
 
     preds_irls = model_irls.predict(X_test)
-    probs_irls = model_irls.predict_proba(X_test)
 
     calculate_metrics(
         preds_irls, 
@@ -87,36 +87,21 @@ def main():
 
     # Обучение и тестирование модели из sklearn
     model_sklearn = LogisticRegression(
-        penalty=None,
-        solver="lbfgs",
-        fit_intercept=True,
-        max_iter=1000
+        penalty = None,
+        solver = "lbfgs",
+        fit_intercept = True,
+        max_iter = MAX_ITER,
+        tol = TOL
     )
     model_sklearn.fit(X_train, y_train)
 
     preds_sklearn = model_sklearn.predict(X_test)
-    probs_sklearn = model_sklearn.predict_proba(X_test)[:, 1]
 
     calculate_metrics(
         preds_sklearn, 
         y_test, 
         file_path = f"{results_path}/metrics.txt"
     )
-
-    logging.info(
-        f"Средние отличия вероятностей:\n"
-        f"Newton vs IRLS: {np.mean(np.abs(probs_newton - probs_irls)):.6f}\n"
-        f"Newton vs Sklearn: {np.mean(np.abs(probs_newton - probs_sklearn)):.6f}\n"
-        f"IRLS vs Sklearn: {np.mean(np.abs(probs_irls - probs_sklearn)):.6f}"
-    )
-
-    plot_probabilities(
-        probs_newton, 
-        probs_irls, 
-        probs_sklearn,
-        save_path = f"{results_path}/probs.png"
-    )
-
 
 if __name__ == "__main__":
     main()

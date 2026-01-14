@@ -44,22 +44,3 @@ def calculate_metrics(
 
     with open(file_path, "a") as file:
         file.write(metrics_str)
-
-def plot_probabilities(
-        p1, 
-        p2, 
-        p3,
-        save_path
-):
-    plt.figure(figsize=(8, 6))
-    plt.hist(p1, bins=30, alpha=0.5, label="Newton")
-    plt.hist(p2, bins=30, alpha=0.5, label="IRLS")
-    plt.hist(p3, bins=30, alpha=0.5, label="Sklearn")
-
-    plt.title("Сравнение распределений вероятностей")
-    plt.xlabel("Предсказанная вероятность")
-    plt.ylabel("Количество объектов")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(save_path, dpi=300)
-    plt.close()

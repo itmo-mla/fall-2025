@@ -4,10 +4,10 @@ import logging
 from .utils import sigmoid
 
 class OwnLogisticRegressionIRLS:
-    def __init__(self, max_iter: int = 100, tol: float = 1e-6):
+    def __init__(self, max_iter: int = 100, tol: float = 1e-6, eps = 1e-6):
         self.max_iter = max_iter
         self.tol = tol
-        self.eps = 1e-12
+        self.eps = eps
         self.weights = None
         self.bias = 0.0
 
