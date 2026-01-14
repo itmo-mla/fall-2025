@@ -1,0 +1,64 @@
+import numpy as np
+import logging
+
+from .utils import sigmoid
+
+class OwnLogisticRegressionNewtonRafson:
+    def __init__(self, max_iter: int = 100, tol: float = 1e-6, reg: float = 1e-4):
+        self.max_iter = max_iter
+        self.tol = tol
+        self.reg = reg
+        self.weights = None
+        self.bias = 0.0
+
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        # Получаем размерность данных
+        n_samples, n_features = X.shape
+
+        # Начальная инициализация
+        X_ext = np.hstack([X, np.ones((n_samples, 1))])
+        theta = np.zeros(n_features + 1)
+
+        for iteration in range(self.max_iter):
+            # Получаем линейную комбинацию признаков
+            linear = X_ext @ theta
+
+            # Получаем вероятности классов
+            probs = sigmoid(linear)
+
+            # Диагональная матрица весов W
+            W = np.diag(probs * (1 - probs))
+
+            # Считаем градиент
+            gradient = X_ext.T @ (y - probs)
+
+            # Считаем гессиан
+            hessian = X_ext.T @ W @ X_ext
+
+            # Демпфирование
+            hessian += self.reg * np.eye(n_features + 1)
+
+            # Решаем систему уравнений
+            try:
+                delta = np.linalg.solve(hessian, gradient)
+            except np.linalg.LinAlgError:
+                logging.info("Гессиан вырожден, обучение остановлено")
+                break
+
+            # Обновление параметров модели
+            theta += delta
+
+            if np.linalg.norm(delta) < self.tol:
+                logging.info(f"сходимость на итерации {iteration}")
+                break
+
+        self.weights = theta[:-1]
+        self.bias = theta[-1]
+
+        return self
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        return sigmoid(X @ self.weights + self.bias)
+
+    def predict(self, X: np.ndarray, threshold: float = 0.5) -> np.ndarray:
+        return (self.predict_proba(X) >= threshold).astype(int)
