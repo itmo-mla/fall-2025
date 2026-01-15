@@ -42,7 +42,8 @@ class ABCModel(ABC):
             # Val loss
             y_val_probs = self.__call__(X_val)
             loss_val = loss(y_val, y_val_probs)
-            loss_val = regularizer(self.get_weights(), loss_val) if regularizer else loss_val
+            if regularizer: loss_val += regularizer(self.get_weights())
+
             # Metric
             y_val_preds = y_val_probs if postprocess is None else postprocess(y_val_probs)
             metrics_val_batch.append(count_metric(y_val, y_val_preds))
@@ -91,9 +92,13 @@ class ABCModel(ABC):
         for layer in self.get_weights_layers():
             weights, bias = layer.get_weights()
             W.append(weights)
-            if bias is not None: b.append(bias)
+            if bias is not None:
+                b.append(bias)
         
-        return np.array(W), np.array(b) if len(b) else None
+        if len(b):
+            return np.array(W), np.array(b)
+        else:
+            return np.array(W), None
     
     def backward_pass(self, loss: ABCLoss):
         delta = loss.backward_pass(self.arch_model[-1].outputs)
