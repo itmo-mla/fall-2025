@@ -1,13 +1,17 @@
 from .visualization import (
-    plot_pairplot,
-    plot_target_distribution,
-    plot_accuracy_comparison,
+    show_pairs,
+    show_dist,
+    compare_results,
+    visualize_model,
+    plot_confusion_matrix,
 )
 
 __all__ = [
-    "plot_pairplot",
-    "plot_target_distribution",
-    "plot_accuracy_comparison",
+    "show_pairs",
+    "show_dist",
+    "compare_results",
+    "visualize_model",
+    "plot_confusion_matrix",
 ]
 
 
