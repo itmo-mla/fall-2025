@@ -14,7 +14,7 @@ class KNNParzen:
     def _gaussian_kernel(self, distances, h):
         h = max(h, self.eps)
         q = (distances / h) ** 2
-        return np.exp(-0.5 * q)
+        return np.exp(-2 * q)
 
     def _predict_point(self, x):
         dists = np.linalg.norm(self.X - x, axis=1)
