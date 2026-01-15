@@ -1,6 +1,0 @@
-# Hyper-params
-
-LEARNING_RATE = 1e-3
-MOMENTUM_BETTA = 0.5
-L2_COEF = 1e-4
-LOSS_LAMBDA = 1e-4
