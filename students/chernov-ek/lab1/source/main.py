@@ -1,84 +1,164 @@
-import numpy as np
-from ucimlrepo import fetch_ucirepo
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report, accuracy_score
 
-from source.weights_initializers import correlated_init
+from source.data_loaders.datasets import load_mushroom_dataset
+from source.weights_initializers import correlation_init, multistart_init
 from source.models import LinearClassificator
 from source.losses import PerceptronLoss
 from source.optimizers import GDOptimizer
 from source.data_loaders import ShuffleLoader, ModuleMarginLoader
+from source.tools import vis_graphics
+from source.regularizers import L2Regularizer
 
 
-random_state = 42
-
-
-def load_data():
+def train_model_w_correlation_init():
     # Загружаем данные
-    mushroom = fetch_ucirepo(id=73)
-
-    # Получаем признаки и метки
-    X = mushroom.data.features
-    y = mushroom.data.targets
-
-    # Предобрабатываем данные
-    # Инструменты для предобработки
-    label_encoder = LabelEncoder()
-    # poisonous=1, edible=-1
-    y = np.where(y == 'p', 1, -1)
-    # Кодируем все признаки
-    cols = X.keys()
-    for col in cols:
-        new_col = str(col) + "_n"
-        X[new_col] = label_encoder.fit_transform(X[col])
-        del X[col]
-
-    # Разделяем на выборки
-    X_train, X_test, y_train, y_test = map(np.array, train_test_split(X, y, test_size=0.2, random_state=random_state, shuffle=True, stratify=y))
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=random_state, shuffle=True, stratify=y_train)
-    return X_train, X_val, X_test, y_train, y_val, y_test
-
-
-if __name__ == "__main__":
-    # Вычисление отступа объекта +
-
-    # Вывод объектов по модулю отступа +
-
-    # Градиент функции потерь +
-
-    # Реккурентная оценка функционала качества
-
-    # SGD +
-
-    # SGD с инерцией
-
-    # L2 регуляризация
-
-    # Обучение линейного классификатора
-    # инициализация весов через корреляцию
-    # инициализация весов через мультистарт
-    # обучить со случайным предъявлением и с предъявление объектов мо модулю отступа
-    X_train, X_val, X_test, y_train, y_val, y_test = load_data()
+    X_train, X_val, X_test, y_train, y_val, y_test = load_mushroom_dataset(labels=[1, -1], targets_shape=1)
 
     model = LinearClassificator(in_features=X_train.shape[1])
+
+    # Инициализируем веса с помощью корреляции
+    model.eval()
+    layer = model.get_weights_layers()[0]
+    W, b = layer.get_weights()
+    W = correlation_init(X_val, y_val.ravel())
+    layer.update_weights(W, b)
+
     loss = PerceptronLoss()
 
     regularizer = None
     lr = 0.001
     batch_size = 32
     data_loader = ShuffleLoader(batch_size)
-    optimizer = GDOptimizer(model.get_layers(), data_loader, regularizer, lr)
+    optimizer = GDOptimizer(model.get_weights_layers(), data_loader, lr)
 
     n_epochs = 100
     count_metric = accuracy_score
     verbose_n_batch_multiple = 10
-    losses, metrics = model.train(
+    model.train_model(
         n_epochs,
         X_train, y_train, X_val, y_val,
-        loss, optimizer, count_metric=count_metric, verbose_n_batch_multiple=verbose_n_batch_multiple
+        loss, optimizer, regularizer,
+        count_metric=count_metric,
+        verbose_n_batch_multiple=verbose_n_batch_multiple, verbose_statistic='EMA'
     )
 
-    # Оценка качества классификатора +
+    # Evaluate
+    # vis_graphics.visualize_losses_metrics(model.losses_train, model.losses_val, model.metrics_val)
+    model.eval()
+    y_pred = model(X_test)
+    print(classification_report(y_test, y_pred))
 
-    # Сравнение лучшей реализацией с эталонной
+
+def train_model_w_multistart_init():
+    # Загружаем данные
+    X_train, X_val, X_test, y_train, y_val, y_test = load_mushroom_dataset(labels=[1, -1], targets_shape=1)
+
+    model = LinearClassificator(in_features=X_train.shape[1])
+    loss = PerceptronLoss()
+    # Инициализируем веса с помощью мультистарта
+    model = multistart_init(
+        model,
+        X_val, y_val,
+        loss,
+        n_starts=10
+    )
+
+    regularizer = None
+    lr = 0.001
+    batch_size = 32
+    data_loader = ShuffleLoader(batch_size)
+    optimizer = GDOptimizer(model.get_weights_layers(), data_loader, lr)
+
+    n_epochs = 100
+    count_metric = accuracy_score
+    verbose_n_batch_multiple = 10
+    model.train_model(
+        n_epochs,
+        X_train, y_train, X_val, y_val,
+        loss, optimizer, regularizer,
+        count_metric=count_metric,
+        verbose_n_batch_multiple=verbose_n_batch_multiple, verbose_statistic='EMA'
+    )
+
+    # Evaluate
+    # vis_graphics.visualize_losses_metrics(model.losses_train, model.losses_val, model.metrics_val)
+    model.eval()
+    y_pred = model(X_test)
+    print(classification_report(y_test, y_pred))
+
+
+def train_model_w_margins():
+    # Загружаем данные
+    X_train, X_val, X_test, y_train, y_val, y_test = load_mushroom_dataset(labels=[1, -1], targets_shape=1)
+
+    model = LinearClassificator(in_features=X_train.shape[1])
+
+    loss = PerceptronLoss()
+    regularizer = None
+
+    batch_size = 32
+    exclude_good_objects = True
+    exclude_outliers = False
+    strategy = 'error'
+    data_loader = ModuleMarginLoader(
+        batch_size,
+        exclude_good_objects=exclude_good_objects,
+        exclude_outliers=exclude_outliers,
+        strategy=strategy
+    )
+    lr = 0.001
+    optimizer = GDOptimizer(model.get_weights_layers(), data_loader, lr)
+
+    n_epochs = 90
+    warmup_epochs = 10
+    count_metric = accuracy_score
+    verbose_n_batch_multiple = 10
+    model.train_model(
+        n_epochs,
+        X_train, y_train, X_val, y_val,
+        loss, optimizer, regularizer,
+        count_metric=count_metric,
+        warmup_epochs=warmup_epochs,
+        verbose_n_batch_multiple=verbose_n_batch_multiple, verbose_statistic='EMA'
+    )
+
+    # Evaluate
+    # vis_graphics.visualize_losses_metrics(model.losses_train, model.losses_val, model.metrics_val)
+    model.eval()
+    y_pred = model(X_test)
+    print(classification_report(y_test, y_pred))
+
+
+def train_model_best():
+    # Загружаем данные
+    X_train, X_val, X_test, y_train, y_val, y_test = load_mushroom_dataset(labels=[1, -1], targets_shape=1)
+
+    model = LinearClassificator(in_features=X_train.shape[1])
+    loss = PerceptronLoss()
+
+    regularizer = L2Regularizer(lambda_q=0.4)
+    lr = 0.001
+    batch_size = 8
+    data_loader = ShuffleLoader(batch_size)
+    optimizer = GDOptimizer(model.get_weights_layers(), data_loader, lr)
+
+    n_epochs = 100
+    count_metric = accuracy_score
+    verbose_n_batch_multiple = 10
+    model.train_model(
+        n_epochs,
+        X_train, y_train, X_val, y_val,
+        loss, optimizer, regularizer,
+        count_metric=count_metric,
+        verbose_n_batch_multiple=verbose_n_batch_multiple, verbose_statistic='EMI'
+    )
+
+    # Evaluate
+    # vis_graphics.visualize_losses_metrics(model.losses_train, model.losses_val, model.metrics_val)
+    model.eval()
+    y_pred = model(X_test)
+    print(classification_report(y_test, y_pred))
+
+
+if __name__ == "__main__":
+    train_model_w_correlation_init()

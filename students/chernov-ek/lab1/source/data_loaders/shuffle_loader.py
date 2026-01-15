@@ -1,7 +1,7 @@
 from typing import Iterator
 import numpy as np
 
-from .abc_loader import ABCLoader
+from source.data_loaders import ABCLoader
 
 
 class ShuffleLoader(ABCLoader):

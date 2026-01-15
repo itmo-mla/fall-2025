@@ -4,13 +4,21 @@ from abc import ABC, abstractmethod
 
 class ABCActivation(ABC):
     def __init__(self):
-        self.A: np.ndarray | None = None
-        self.dA_dZ: np.ndarray | None = None
+        self.learning = True
+
+        self.inputs: np.ndarray | None = None 
+        self.outputs: np.ndarray | None = None
 
     @abstractmethod
-    def __call__(self, Z: np.ndarray) -> np.ndarray:
+    def __call__(self, inputs: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def backward_pass(self, delta: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
     
-    @abstractmethod
-    def pd_wrt_z(self, Z: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
+    def train(self):
+        self.learning = True
+
+    def eval(self):
+        self.learning = False

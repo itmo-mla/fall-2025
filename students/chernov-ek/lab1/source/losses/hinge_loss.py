@@ -1,17 +1,14 @@
 import numpy as np
 
-from .abc_loss import ABCLoss
+from source.losses import ABCLoss
 
 
 class HingeLoss(ABCLoss):
     """
     Шарнирная функция ошибки.
     """
-    def __init__(self):
-        super().__init__()
-
     def __call__(self, y_true: np.ndarray, Z: np.ndarray) -> np.float64:
-        self.y_true = y_true.copy()
+        if self.learning: self.y_true = y_true.copy()
         return np.mean(np.maximum(0, 1 - y_true*Z))
     
     def pd_wrt_w(self, X: np.ndarray) -> tuple[np.ndarray, np.float64]:
