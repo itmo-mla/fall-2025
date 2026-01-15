@@ -1,4 +1,4 @@
-# Лабораторная работа №1
+# Лабораторная работа №5
 
 ## Данные
 [Датасет](https://www.kaggle.com/datasets/nareshbhat/health-care-data-set-on-heart-attack-possibility/data) аналогичен датасету из 1 лабораторной.
