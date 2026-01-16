@@ -1,0 +1,11 @@
+Method,Initialization,Optimizer,Batching,Accuracy,Precision,Recall,F1
+multistart + momentum + margin,multistart,momentum,margin,0.9474,0.9712,0.9439,0.9573
+multistart + momentum + random,multistart,momentum,random,0.924,0.9519,0.9252,0.9384
+multistart + fast + margin,multistart,fast,margin,0.9591,0.9808,0.9533,0.9668
+multistart + fast + random,multistart,fast,random,0.9649,0.981,0.9626,0.9717
+correlation + momentum + margin,correlation,momentum,margin,0.9357,0.9444,0.9533,0.9488
+correlation + momentum + random,correlation,momentum,random,0.9357,0.9444,0.9533,0.9488
+correlation + fast + margin,correlation,fast,margin,0.9591,0.9808,0.9533,0.9668
+correlation + fast + random,correlation,fast,random,0.9591,0.9808,0.9533,0.9668
+Sklearn Logistic (SGD),sklearn,sklearn,sklearn,0.9591,0.9545,0.9813,0.9677
+Sklearn Linear SVM (SGD),sklearn,sklearn,sklearn,0.9766,0.9725,0.9907,0.9815
