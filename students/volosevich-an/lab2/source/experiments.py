@@ -76,7 +76,7 @@ plot_empirical_risk_k(model, X_train, y_train, X_test, y_test ,k_values=range(2,
 # ## Визуализация и метрики после отбора эталонов
 
 # %%
-selector = PrototypeSelector(n_centroids=2, n_border=1)
+selector = PrototypeSelector(n_centroids=1, n_border=2)
 X_new, y_new = selector.select(X_train, y_train)
 visualize_prototypes(X_train, y_train, X_new, y_new)
 
