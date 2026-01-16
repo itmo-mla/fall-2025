@@ -97,13 +97,13 @@ m=10: MSE ours=5.206149e-31, sklearn=5.206149e-31
 
 **Пример визуализаций:**
 
-![Scree Plot](results/scree.png)  
+![Scree Plot](source/results/scree.png)  
 *На графике видно, что после 8 компонент дисперсия стабилизируется.*
 
-![Cumulative Explained Variance](results/cumulative_variance.png)  
+![Cumulative Explained Variance](source/results/cumulative_variance.png)  
 *90–95% дисперсии объясняется уже первыми 8 компонентами.*
 
-![Reconstruction Error](results/reconstruction_vs_m.png)  
+![Reconstruction Error](source/results/reconstruction_vs_m.png)  
 *Ошибка восстановления стремится к нулю при m ≥ 8.*
 
 ---
