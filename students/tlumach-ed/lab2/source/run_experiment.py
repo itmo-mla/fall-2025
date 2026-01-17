@@ -27,8 +27,25 @@ def main():
     # Отбор эталонов (жадное удаление)
     print('Запускаю жадное удаление эталонов...')
     classifier_ctor = lambda: KNNParzen()
-    proto_remove, err_remove = greedy_remove(X, y, classifier_ctor)
-    print(f'После удаления: {len(proto_remove)} эталонов, LOO ошибка = {err_remove:.4f}')
+    proto_remove, err_remove, history = greedy_remove(X, y, classifier_ctor, k=best_k, tol=0.01)
+    print(f'После удаления: {len(proto_remove)} эталонов, CCV(k) = {err_remove:.4f}')
+
+    # График CCV vs число удалённых объектов
+    sizes, ccv_vals = zip(*history)
+    removed = np.arange(len(ccv_vals))
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(removed, ccv_vals, marker='o', label='CCV(k) на обучении')
+    plt.xlabel('Число удалённых объектов')
+    plt.ylabel('CCV')
+    plt.title('Зависимость CCV от числа удалённых неэталонных объектов')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('ccv_vs_prototypes.png', dpi=150)
+    plt.close()
+
+    print('График ccv_vs_prototypes.png сохранён')
 
     # Визуализация (PCA 2D) — для интуиции
     try:
