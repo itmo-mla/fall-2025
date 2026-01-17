@@ -1,0 +1,8 @@
+training:
+  epochs: 100
+  lr: 0.001
+  l2: 0.001
+  momentum: 0.9
+  seed: 122
+  n_starts: 5
+  save_dir: runs
