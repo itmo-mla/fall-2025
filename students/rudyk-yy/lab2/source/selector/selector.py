@@ -3,12 +3,11 @@ from .compactness import Compactness
 import matplotlib.pyplot as plt
 
 class Selector:
-    def __init__(self, X, y, epsilon=1e-6, verbose=False, k=None):
+    def __init__(self, X, y, epsilon=1e-6, verbose=False):
         self.X = np.asarray(X)
         self.y = np.asarray(y)
         self.epsilon = epsilon
         self.verbose = verbose
-        self.k = k
         self.best_ccv = np.inf
         self.history = []
 
@@ -20,27 +19,26 @@ class Selector:
         print(self.X.shape)
         while improved and len(omega) > 1:
             improved = False
-            best_i = []
+            best_i = None
             best_ccv = self.best_ccv
             print(self.X.shape[1])
             for i in omega:
                 omega_new = [j for j in omega if j != i]
-                ccv_new = C.CCV(np.array(omega_new),k=self.k, l=self.X.shape[1])
+                ccv_new = C.CCV(np.array(omega_new),k=1, l=self.X.shape[1])
                 print(f"\rПробуем удалить {i}: CCV={ccv_new:.6f}", end="")
                 if ccv_new < best_ccv - self.epsilon:
                     best_ccv = ccv_new
-                    best_i.append(i)
+                    best_i = i
                 
             print(len(best_i))
-            if len(best_i) > 0:
+            if best_i is not None:
                 print(len(best_i))
-                for i in best_i:
-                    omega.remove(i)
-                    if self.verbose:
-                     print(f"Удалили {i}, осталось {len(omega)}, CCV={best_ccv:.6f}")
+                omega.remove(best_i)
                 self.best_ccv = best_ccv
                 improved = True
                 self.history.append((len(omega), best_ccv))
+                if self.verbose:
+                    print(f"\nУдалили {best_i}, CCV={best_ccv:.6f}, размер Ω={len(omega)}")
                 
 
         return np.array(omega)
@@ -66,7 +64,7 @@ class Selector:
                     continue
 
                 omega_new = Omega + [i]
-                ccv_new = C.CCV(np.array(omega_new), k=self.k, l=self.X.shape[1])
+                ccv_new = C.CCV(np.array(omega_new), k=1, l=self.X.shape[1])
 
 
                 if ccv_new < best_ccv - self.epsilon:
@@ -82,7 +80,7 @@ class Selector:
                     print(f"\nДобавили {best_i}, CCV={best_ccv:.6f}, размер Ω={len(Omega)}")
         return np.array(Omega)
 
-    def plot_history(self):
+    def plot_history(self, mode='add'):
         if not self.history:
             print("Нет истории — сначала вызови select()")
             return
@@ -91,5 +89,6 @@ class Selector:
         plt.xlabel("Размер множества Ω")
         plt.ylabel("CCV(Ω)")
         plt.title("Изменение CCV при жадном отборе эталонов")
-        plt.gca().invert_xaxis()
+        if mode == 'remove':
+            plt.gca().invert_xaxis()
         plt.show()
