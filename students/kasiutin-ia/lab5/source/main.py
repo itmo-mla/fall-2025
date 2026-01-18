@@ -47,38 +47,18 @@ class LogReg:
         self.weights = self.weights = np.random.randn(X.shape[-1])
 
         Q = []
-        prev_sigm = np.zeros_like(y)
         for i in range(n_iter):
-            # sigma = self._sigmoid(self.weights @ X.T * y)
+            sigma = self._sigmoid(self.weights @ X.T * y)
 
-            # grad = - np.linalg.inv(X.T @ np.diag((1 - sigma) * sigma) @ X + np.eye(X.shape[1]) * 1e-4) @ X.T @ (y / sigma)
+            grad = - np.linalg.inv(X.T @ np.diag((1 - sigma) * sigma) @ X + np.eye(X.shape[1]) * 1e-4) @ X.T @ (y / sigma)
 
 
-            # self.weights -= learning_rate * grad
+            self.weights -= learning_rate * grad
 
-            # new_Q = self._get_Q(X, y)
-            # print(f"Iteration {i + 1}: Q = {new_Q}")
-            # Q.append(new_Q)
+            new_Q = self._get_Q(X, y)
+            print(f"Iteration {i + 1}: Q = {new_Q}")
+            Q.append(new_Q)
 
-            sigm = self._sigmoid(self.weights @ X.T * y)
-
-            gradient = -(X.T @ (y / sigm))
-            D = np.diag(sigm * (1 - sigm))
-            hessian = X.T @ D @ X
-
-            # Add regularization to prevent singular matrix
-            hessian += 1e-6 * np.eye(hessian.shape[0])
-
-            self.weights -= learning_rate * (np.linalg.inv(hessian) @ gradient)
-
-            upd_norm = np.linalg.norm(sigm - prev_sigm)
-            if upd_norm < 1e-3:
-                print(f"Converged at iteration {i + 1}")
-                break
-            else:
-                prev_sigm = sigm
-                print(f"-- NR iter {i + 1}: {upd_norm}")
-        return
         return Q
 
 
