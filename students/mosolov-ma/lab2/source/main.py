@@ -1,8 +1,10 @@
+import numpy as np
+
 from knn import KNN
 from data_workflow import load_and_prepare_data, scale_features, train_test_split_data
 from sklearn.neighbors import KNeighborsClassifier
 from metrics import Metrics
-from prototype_selection import PrototypeSelector
+from etalons_selection import PrototypeSelection
 
 model = KNN(k=15)
 
@@ -30,21 +32,15 @@ print(f"Accuracy etalon: {Metrics.accuracy(y_test, y_pred_etalon)}")
 
 print(f"Accuracy model: {Metrics.accuracy(y_test, y_pred_model)}")
 
-selector = PrototypeSelector(X_train, y_train, k=15)
+selector = PrototypeSelection(k=15)
+mask, history = selector.fit(X_train, y_train)
+X_selected = X_train[mask]
+y_selected = y_train[mask]
 
-prototype_indices = selector.find_prototypes()
+prototype_model = KNN(k=15)
+prototype_model.fit(X_selected, y_selected)
 
-X_prototypes = X_train[prototype_indices]
-y_prototpes = y_train[prototype_indices]
+y_pred_proto = prototype_model.predict(X_test)
 
-model_prototype = KNN(k=15)
+print(f"Accuracy prototype: {Metrics.accuracy(y_test, y_pred_proto)}")
 
-model_prototype.fit(X_prototypes, y_prototpes)
-
-y_pred_prototypes = model_prototype.predict(X_test)
-
-print(f"Accuracy prototype: {Metrics.accuracy(y_test, y_pred_prototypes)}")
-
-selector.plot_error_history()
-
-selector.plot_decision_boundary()

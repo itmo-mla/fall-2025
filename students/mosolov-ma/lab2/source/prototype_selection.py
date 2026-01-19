@@ -1,220 +1,140 @@
-import numpy as np
-import matplotlib.pyplot as plt
 from knn import KNN
-from sklearn.neighbors import KNeighborsClassifier
+from data_workflow import load_and_prepare_data, scale_features, train_test_split_data
+import numpy as np
+from metrics import Metrics
 from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
-class PrototypeSelector:
-    def __init__(self, X, y, k=5, tol=1e-2, max_extra_steps=10, model='custom', split_method='custom'):
-        self.X = X
-        self.y = y
+
+class PrototypeSelection:
+    def __init__(self, k=1):
         self.k = k
-        self.tol = tol
-        self.max_extra_steps = max_extra_steps
-        self.model = model
-        self.split_method = split_method
-        self.error_history = []
-        self.size_history = []
-        self.prototype_indices = None
+        self.history = []
 
-    def _compute_ccv_error(self, omega_idx):
-        if len(omega_idx) <= 1:
-            return 1.0
+    def accuracy_score(self, y_true, y_pred):
+        return np.mean(y_true == y_pred)
 
-        X_omega = self.X[omega_idx]
-        y_omega = self.y[omega_idx]
-        n = len(omega_idx)
-        errors = 0
+    def fit(self, X, y):
+        n = X.shape[0]
+        mask = np.ones(n, dtype=bool)
+        model = KNN(k=self.k)
 
-        for i in range(n):
-            # Обучаем на Ω без i-го объекта
-            X_train = np.delete(X_omega, i, axis=0)
-            y_train = np.delete(y_omega, i, axis=0)
-            x_test = X_omega[i].reshape(1, -1)
+        def compute_empirical_error(mask):
+            x_train = X[mask]
+            y_train = y[mask]
+            model.fit(x_train, y_train)
+            y_pred = model.predict(x_train)
+            return 1 - self.accuracy_score(y_true=y_train, y_pred=y_pred)
 
-            if self.model == 'custom':
-                model = KNN(k=self.k)
-            else:  # sklearn
-                model = KNeighborsClassifier(n_neighbors=self.k, metric='euclidean')
-
-            model.fit(X_train, y_train)
-            y_pred = model.predict(x_test)[0]
-            if y_pred != y_omega[i]:
-                errors += 1
-
-        return errors / n
-    
-
-    def _compute_full_loo_error_correct(self, omega_idx):
-        if len(omega_idx) <= 20:
-            return 1.0
-        
-        total_errors = 0
-        n = len(self.X)
-
-        # Предварительно обучим базовую модель на Ω (для объектов не из Ω)
-        X_omega = self.X[omega_idx]
-        y_omega = self.y[omega_idx]
-
-        for i in range(n):
-            x_test = self.X[i].reshape(1, -1)
-            y_true = self.y[i]
-
-            if i in omega_idx:
-                # x_i — эталон → исключаем его из обучающей выборки
-                mask = np.array(omega_idx) != i
-                if mask.sum() == 0:
-                    # Нечего обучать — ошибка = 1
-                    total_errors += 1
+        flag = True
+        while flag and np.sum(mask) > 1:
+            min_error = float('inf')
+            min_index = -1
+            for idx in range(n):
+                if not mask[idx]:
                     continue
-                X_train = X_omega[mask]
-                y_train = y_omega[mask]
+                mask[idx] = False
+                error = compute_empirical_error(mask)
+                if error < min_error:
+                    min_error = error
+                    min_index = idx
+                mask[idx] = True
+
+            flag = self._should_continue(min_error)
+            if flag:
+                mask[min_index] = False
+                self.history.append(min_error)
             else:
-                # x_i — не эталон → обучаем на всём Ω
-                X_train = X_omega
-                y_train = y_omega
-
-            if self.model == 'custom':
-                model = KNN(k=self.k)
-            else:
-                model = KNeighborsClassifier(n_neighbors=self.k, metric='euclidean')
-
-            model.fit(X_train, y_train)
-            y_pred = model.predict(x_test)[0]
-            if y_pred != y_true:
-                total_errors += 1
-
-        return total_errors / n
-
-    def find_prototypes(self):
-        omega_idx = list(range(len(self.X)))
-        current_error = self._compute_full_loo_error_correct(omega_idx)
-
-        self.error_history = [current_error]
-        self.size_history = [len(omega_idx)]
-
-        print(f"[Старт] LOO на полной выборке: {current_error:.4f}, |Ω| = {len(omega_idx)}")
-
-        iteration = 0
-        extra_steps_done = 0
-        strong_jump_occurred = False
-        min_size = max(self.k, 2)
-
-        while len(omega_idx) > min_size:
-            best_error = float('inf')
-            best_to_remove = None
-
-            for i, idx in enumerate(omega_idx):
-                candidate_omega = omega_idx[:i] + omega_idx[i+1:]
-                if len(candidate_omega) < min_size:
-                    continue
-                error = self._compute_full_loo_error_correct(candidate_omega)
-                if error < best_error:
-                    best_error = error
-                    best_to_remove = i
-
-            if best_to_remove is None:
                 break
 
-            if not strong_jump_occurred:
-                if best_error > current_error + self.tol and (best_error - current_error) > 0.02:
-                    strong_jump_occurred = True
-                    print(f"[!] Сильный скачок ошибки на итерации {iteration + 1}: "
-                          f"{current_error:.4f} → {best_error:.4f}")
+        return mask, self.history
 
-            removed_idx = omega_idx.pop(best_to_remove)
-            current_error = best_error
-            iteration += 1
-
-            self.error_history.append(current_error)
-            self.size_history.append(len(omega_idx))
-
-            print(f"Итерация {iteration}: удалён объект {removed_idx}, "
-                  f"ошибка на Ω = {current_error:.4f}, |Ω| = {len(omega_idx)}")
-
-            if strong_jump_occurred:
-                extra_steps_done += 1
-                if extra_steps_done >= self.max_extra_steps:
-                    print(f"Завершено: выполнено {self.max_extra_steps} шагов после сильного скачка.")
-                    break
-
-        self.prototype_indices = omega_idx
-        return np.array(omega_idx)
-
-    def plot_error_history(self, title="LOO Error on Full Dataset During Prototype Selection"):
-        if not self.error_history:
-            raise ValueError("Сначала вызовите find_prototypes()!")
-        plt.figure(figsize=(10, 6))
-        plt.plot(self.size_history, self.error_history, marker='o', linestyle='-', color='b')
-        plt.gca().invert_xaxis()  # Меньше эталонов → вправо
-        plt.xlabel("Число эталонов |Ω|")
-        plt.ylabel("LOO Error (на полной выборке)")
-        plt.title(title)
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    def _apply_pca_if_needed(self, X):
-        """
-        Преобразует данные в 2D с помощью PCA, если нужно.
-        Возвращает (X_2d, pca_object), где X_2d имеет shape (n_samples, 2).
-        """
-        if X.shape[1] == 2:
-            return X, None  # PCA не нужен
-        elif X.shape[1] < 2:
-            raise ValueError("Данные должны иметь хотя бы 2 признака.")
-        else:
-            pca = PCA(n_components=2)
-            X_2d = pca.fit_transform(X)
-            return X_2d, pca
+    def _should_continue(self, new_error):
+        if not self.history:
+            return True
+        if new_error < 1e-10:
+            print(f"Small new_error: {new_error}")
+            return False
+        recent_mean = np.mean(self.history[-5:])
+        print(f"Current error: {new_error}, Recent mean error: {recent_mean}, Diff: {new_error - recent_mean}")
+        return (new_error - recent_mean) < 1e-5
 
 
-    def plot_decision_boundary(self, resolution=100, figsize=(8, 6)):
-        if self.prototype_indices is None:
-            raise ValueError("Сначала вызовите find_prototypes()!")
+if __name__ == "__main__":
 
-        # Применяем PCA ко всем данным
-        X_2d, pca = self._apply_pca_if_needed(self.X)
-        if pca is not None:
-            X_proto_2d = pca.transform(self.X[self.prototype_indices])
-        else:
-            X_proto_2d = self.X[self.prototype_indices]
+    df = load_and_prepare_data()
 
-        classes = np.unique(self.y)
-        n_classes = len(classes)
+    X = scale_features(df.drop(columns=['target']))
+    y = df['target']
 
-        # # Границы сетки
-        # x_min, x_max = X_2d[:, 0].min() - 1, X_2d[:, 0].max() + 1
-        # y_min, y_max = X_2d[:, 1].min() - 1, X_2d[:, 1].max() + 1
-        # xx, yy = np.meshgrid(np.linspace(x_min, x_max, resolution),
-        #                      np.linspace(y_min, y_max, resolution))
+    X = X.to_numpy()
+    y = y.to_numpy()
 
-        # Цветовые палитры
-        cmap_light = plt.cm.get_cmap('Pastel1', n_classes)
-        cmap_bold = plt.cm.get_cmap('Set1', n_classes)
+    X_train, X_test, y_train, y_test = train_test_split_data(X, y)
 
-        plt.figure(figsize=figsize)
-        # plt.contourf(xx, yy, cmap=cmap_light, alpha=0.8)
+    k = 15
 
-        # Наносим ВСЕ точки с их истинными метками
-        for i, cls in enumerate(classes):
-            mask = self.y == cls
-            plt.scatter(X_2d[mask, 0], X_2d[mask, 1],
-                        c=[cmap_bold(i)], label=f'Класс {cls}', edgecolor='k', s=20)
+    selector = PrototypeSelection(k=17)
+    mask, history = selector.fit(X_train, y_train)
+    X_selected = X_train[mask]
+    y_selected = y_train[mask]
 
-        # Выделяем эталоны — контурными кружками
-        plt.scatter(X_proto_2d[:, 0], X_proto_2d[:, 1],
-                    c='none', edgecolor='white', linewidth=2, s=80,
-                    label='Эталоны', marker='o')
 
-        title = f'Граница решения kNN (k={self.k})'
-        if pca is not None:
-            title += " (PCA 2D)"
-        title += f'\nна {len(self.prototype_indices)} эталонах'
-        plt.title(title)
-        plt.xlabel('Первая главная компонента' if pca else 'Признак 1')
-        plt.ylabel('Вторая главная компонента' if pca else 'Признак 2')
-        plt.legend(loc='upper right', bbox_to_anchor=(1.1, 1.1))
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.show()
+    etalon_model = KNN(k=17)
+    etalon_model.fit(X_selected, y_selected)
+
+    model = KNN(k=17)
+    model.fit(X_train, y_train)
+
+    y_pred_etalon = etalon_model.predict(X_test)
+    y_pred_model = model.predict(X_test)
+
+    print(f"Accuracy etalon: {Metrics.accuracy(y_test, y_pred_etalon)}")
+    print(f"Accuracy model: {Metrics.accuracy(y_test, y_pred_model)}")
+
+    print(f"Number of objects: {len(X_train)}")
+    print(f"Number of prototypes: {len(X_selected)}")
+
+
+    pca = PCA(n_components=2, random_state=42)
+    X_train_pca = pca.fit_transform(X_train)
+    X_test_pca = pca.transform(X_test)
+    X_selected_pca = pca.transform(X_selected)
+
+
+    unique_classes = np.unique(np.concatenate([y_train, y_test]))
+    colors = plt.cm.Set1(np.linspace(0, 1, len(unique_classes)))
+    class_to_color = {cls: colors[i] for i, cls in enumerate(unique_classes)}
+
+
+    plt.figure(figsize=(12, 10))
+
+
+    train_mask = np.ones(len(X_train), dtype=bool)
+    train_mask[mask] = False 
+    if np.any(train_mask):
+        plt.scatter(X_train_pca[train_mask, 0], X_train_pca[train_mask, 1],
+                c=[class_to_color[label] for label, m in zip(y_train, train_mask) if m],
+                marker='o', s=30, alpha=0.6, edgecolors='black', linewidth=0.4,
+                label='Обычные тренировочные')
+
+    plt.scatter(X_selected_pca[:, 0], X_selected_pca[:, 1],
+            c=[class_to_color[label] for label in y_selected],
+            marker='^', s=180, alpha=1.0, edgecolors='black', linewidth=2,
+            label=f'Прототипы ({len(X_selected)})')
+
+    plt.scatter(X_test_pca[:, 0], X_test_pca[:, 1],
+            c=[class_to_color[label] for label in y_test],
+            marker='s', s=60, alpha=0.8, edgecolors='darkred', linewidth=1.2,
+            label='Тестовые данные')
+
+    plt.xlabel('PC1', fontsize=12)
+    plt.ylabel('PC2', fontsize=12)
+    plt.title(f'KNN: Прототипы vs Все данные (k={k})\n'
+            f'Прототипов: {len(X_selected)} / {len(X_train)} ({100*len(X_selected)/len(X_train):.1f}%)', 
+            fontsize=14, pad=20)
+
+    plt.grid(True, alpha=0.3)
+    plt.legend(loc='upper right', framealpha=0.95)
+    plt.tight_layout()
+    plt.show()
