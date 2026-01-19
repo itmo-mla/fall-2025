@@ -1,0 +1,124 @@
+LogRegNumpy:
+  Test_1:
+    init_strategy: "normal"
+    total_steps: 10000
+    learning_rate: 0.01
+    gd_algo: "sgd"
+    batch_size: 1
+    momentum: 0.0
+    l2: 0.01
+    optim_step: false
+
+    early_stopping: true
+    tolerance: 0.0001
+    n_startup_rounds: 0
+    early_stop_rounds: 5
+    validation_fraction: 0.1
+
+    rec_mode: "ema"
+    ema_lambda: 0.01
+
+    sampling_mode: "uniform"
+    shuffle: true
+    sampling_tau: 0.5
+    sampling_min_prob: 0.01
+    refresh_rate: 200
+
+    steps_per_epoch: 500
+    verbose: false
+
+    use_best_weights: false
+    return_weights_history: false
+    random_seed: 18092025
+
+  Test_2:
+    init_strategy: "normal"
+    total_steps: 10000
+    learning_rate: 0.01
+    gd_algo: "sgd"
+    batch_size: 1
+    momentum: 0.0
+    l2: 0.01
+    optim_step: false
+
+    early_stopping: true
+    tolerance: 0.0001
+    n_startup_rounds: 0
+    early_stop_rounds: 5
+    validation_fraction: 0.1
+
+    rec_mode: "ema"
+    ema_lambda: 0.01
+
+    sampling_mode: "uniform"
+    shuffle: true
+    sampling_tau: 0.5
+    sampling_min_prob: 0.01
+    refresh_rate: 200
+
+    steps_per_epoch: 500
+    verbose: false
+
+    use_best_weights: false
+    return_weights_history: false
+    random_seed: 18092025
+
+  Test_3:
+    init_strategy: "normal"
+    total_steps: 10000
+    learning_rate: 0.01
+    gd_algo: "sgd"
+    batch_size: 1
+    momentum: 0.0
+    l2: 0.01
+    optim_step: false
+
+    early_stopping: true
+    tolerance: 0.0001
+    n_startup_rounds: 0
+    early_stop_rounds: 5
+    validation_fraction: 0.1
+
+    rec_mode: "ema"
+    ema_lambda: 0.01
+
+    sampling_mode: "uniform"
+    shuffle: true
+    sampling_tau: 0.5
+    sampling_min_prob: 0.01
+    refresh_rate: 200
+
+    steps_per_epoch: 500
+    verbose: false
+
+    use_best_weights: false
+    return_weights_history: false
+    random_seed: 18092025
+
+SGDClassifierSK:
+  Test_1:
+    loss: "log_loss"
+    penalty: "l2"
+    alpha: 0.0
+    max_iter: 1000
+    tol: 0.0001
+    shuffle: true
+    random_state: 18092025
+    learning_rate: "constant"
+    eta0: 0.01
+    early_stopping: false
+    validation_fraction: 0.1
+    n_iter_no_change: 50
+    n_jobs: 1
+    verbose: 1
+
+LogisticRegressionSK:
+  Test_1:
+    penalty: Null
+    C: 1.0
+    max_iter: 1000
+    tol: 0.0001
+    random_state: 18092025
+    solver: "lbfgs"
+    n_jobs: 1
+    verbose: 1
