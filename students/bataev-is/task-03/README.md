@@ -1,11 +1,14 @@
+
+
 ## Лабораторная работа №3 — SVM
 
 ### 1) Датасет
 
 Использован датасет **Iris** (`source/iris.csv`) и сведён к бинарной классификации:
-- классы: `versicolor` vs `virginica`
-- метки: \(y \in \{-1, +1\}\), где \(y=+1\) для `virginica`
-- для визуализации взяты 2 признака: `petal_length`, `petal_width`
+
+* классы: `versicolor` vs `virginica`
+* метки: `y ∈ {-1, +1}`, где `y = +1` для `virginica`
+* для визуализации взяты 2 признака: `petal_length`, `petal_width`
 
 Загрузка/EDA сделаны через **pandas**, математика SVM — на **numpy**, оптимизация — через `scipy.optimize.minimize`.
 
@@ -15,87 +18,93 @@
 
 Решаем soft-margin SVM в двойственной постановке:
 
-\[
-\max_{\alpha}\ \sum_{i=1}^{N}\alpha_i-\frac{1}{2}\sum_{i=1}^{N}\sum_{j=1}^{N}\alpha_i\alpha_j y_i y_j K(x_i,x_j)
-\]
+```
+max_α  Σ α_i − 1/2 ΣΣ α_i α_j y_i y_j K(x_i, x_j)
+```
 
 при ограничениях:
 
-\[
-0 \le \alpha_i \le C,\qquad \sum_{i=1}^{N}\alpha_i y_i = 0
-\]
+```
+0 ≤ α_i ≤ C
+Σ α_i y_i = 0
+```
 
-Это реализовано в `source/model.py` функцией `solve_svm_dual(...)` и решается через **SLSQP** (`scipy.optimize.minimize`) с:
-- bounds \(0..C\)
-- линейным равенством \(\alpha^T y = 0\)
-- аналитическим градиентом.
+Реализация — `solve_svm_dual(...)` в `source/model.py`, решение через **SLSQP** с:
 
-Сдвиг \(b\) восстанавливается по опорным векторам на границе \(0<\alpha_i<C\):
+* bounds `[0..C]`
+* линейным равенством `α^T y = 0`
+* аналитическим градиентом
 
-\[
-b = \mathbb{E}_{i \in SV_{margin}}\left[y_i - \sum_j \alpha_j y_j K(x_j, x_i)\right]
-\]
+Сдвиг `b` вычисляется по опорным векторам на границе `0 < α_i < C`:
+
+```
+b = mean_i [ y_i − Σ α_j y_j K(x_j, x_i) ]
+```
 
 ---
 
 ### 3) Трюк с ядром
 
-Вместо явного скалярного произведения \(x^T x'\) используется ядро \(K(x,x')\).
+Вместо явного `x^T x'` используем ядро `K(x, x')`.
 
-Реализованы ядра:
-- **linear**: \(K(x,x') = x^T x'\)
-- **poly**: \(K(x,x') = (\gamma x^T x' + c_0)^{d}\)
-- **rbf**: \(K(x,x') = \exp(-\gamma \|x-x'\|^2)\)
+Реализовано:
+
+* **linear** — `K = x^T x'`
+* **poly** — `K = (γ x^T x' + c0)^d`
+* **rbf** — `K = exp(−γ ||x − x'||²)`
 
 Решающая функция:
 
-\[
-f(x)=\sum_{i}\alpha_i y_i K(x_i, x) + b,\quad \hat{y}=\mathrm{sign}(f(x))
-\]
+```
+f(x) = Σ α_i y_i K(x_i, x) + b
+ŷ = sign(f(x))
+```
 
 ---
 
 ### 4) Линейный классификатор
 
-Для линейного ядра можно восстановить вектор весов:
+Для линейного ядра можно восстановить веса:
 
-\[
-w = \sum_i \alpha_i y_i x_i
-\]
-
-и считать \(f(x)=w^T x + b\).
+```
+w = Σ α_i y_i x_i
+f(x) = w^T x + b
+```
 
 ---
 
 ### 5) Визуализация
 
-`source/main.py` строит 2D-карту решений (по сетке) и сохраняет в PNG:
-- `source/svm_linear_C1.0.png`
-- `source/svm_rbf_C1.0.png`
+`source/main.py` строит 2D-карту решений и сохраняет:
 
-Опорные вектора выделяются отдельной обводкой.
+* `source/svm_linear_C1.0.png`
+* `source/svm_rbf_C1.0.png`
+
+Опорные вектора выделены на графике.
 
 ---
 
 ### 6) Сравнение с эталонным решением
 
-В `source/main.py` (опционально) добавлено сравнение с `sklearn.svm.SVC` для тех же параметров.
+Опционально можно сравнить с `sklearn.svm.SVC` для тех же параметров.
 
 ---
 
 ### Результаты (seed=42, test_ratio=0.25)
 
 Линейное ядро (`linear`, C=1):
-- train acc ≈ 0.947
-- test acc ≈ 0.875
-- SV ≈ 14
+
+* train acc ≈ 0.947
+* test acc ≈ 0.875
+* SV ≈ 14
 
 Ядро RBF (`rbf`, C=1, gamma=1):
-- train acc ≈ 0.961
-- test acc ≈ 0.917
-- SV ≈ 22
 
-Вывод: **RBF-ядро** даёт прирост качества по сравнению с линейной границей на выбранных 2 признаках.
+* train acc ≈ 0.961
+* test acc ≈ 0.917
+* SV ≈ 22
+
+**Итог:** RBF даёт лучший результат на выбранных признаках.
 
 ---
 
@@ -105,13 +114,15 @@ w = \sum_i \alpha_i y_i x_i
 source /home/noru/Documents/ITMO_SUBJECTS/DL/.venv/bin/activate
 pip install -U scipy pandas matplotlib scikit-learn
 
-python /home/noru/Documents/ITMO_SUBJECTS/fall-2025/students/bataev-is/task-03/source/main.py --kernel linear --C 1.0 --gamma 1.0 --seed 42
-python /home/noru/Documents/ITMO_SUBJECTS/fall-2025/students/bataev-is/task-03/source/main.py --kernel rbf --C 1.0 --gamma 1.0 --seed 42
+python task-03/source/main.py --kernel linear --C 1.0 --gamma 1.0 --seed 42
+python task-03/source/main.py --kernel rbf   --C 1.0 --gamma 1.0 --seed 42
 ```
+
+---
 
 ### Файлы
 
-- `source/model.py`: реализация SVM dual + kernels (numpy) + solve через scipy
-- `source/main.py`: загрузка/EDA, обучение, визуализация, сравнение со sklearn
-- `source/iris.csv`: датасет
+* `source/model.py` — SVM dual + kernels + scipy
+* `source/main.py` — загрузка/EDA, обучение, визуализация, sklearn-сравнение
+* `source/iris.csv` — данные
 
