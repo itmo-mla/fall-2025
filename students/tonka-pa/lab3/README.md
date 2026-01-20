@@ -140,12 +140,12 @@ decision_values = self.dual_coef_ @ gram + self.intercept_
 Примеры (результаты из `results/`):
 
 Линейное ядро, LDA+PCA:
-![MySVC linear LDA+PCA](students/tonka-pa/lab3/results/kernel-linear/mysvc-lda-pca2_kernel-linear_labels_raw_all.png)
-![sklearn SVC linear LDA+PCA](students/tonka-pa/lab3/results/kernel-linear/sklearn-svc-lda-pca2_kernel-linear_labels_raw_all.png)
+![MySVC linear LDA+PCA](results/kernel-linear/mysvc-lda-pca2_kernel-linear_labels_raw_all.png)
+![sklearn SVC linear LDA+PCA](results/kernel-linear/sklearn-svc-lda-pca2_kernel-linear_labels_raw_all.png)
 
 RBF‑ядро, UMAP‑2D (переобучение на проекции):
-![MySVC rbf UMAP](students/tonka-pa/lab3/results/kernel-rbf/mysvc-umap2-fit_kernel-rbf_labels_raw_all.png)
-![sklearn SVC rbf UMAP](students/tonka-pa/lab3/results/kernel-rbf/sklearn-svc-umap2-fit_kernel-rbf_labels_raw_all.png)
+![MySVC rbf UMAP](results/kernel-rbf/mysvc-umap2-fit_kernel-rbf_labels_raw_all.png)
+![sklearn SVC rbf UMAP](results/kernel-rbf/sklearn-svc-umap2-fit_kernel-rbf_labels_raw_all.png)
 
 ## Эксперименты и сравнение с sklearn
 
