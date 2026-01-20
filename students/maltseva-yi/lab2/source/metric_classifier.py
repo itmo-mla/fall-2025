@@ -70,31 +70,54 @@ def loo_validation(X, y, k_values):
 def condensed_nn(X, y):
     if len(X) == 0:
         return X, y
-   
-    # Начинаем с одного объекта каждого класса
+
+    # 1. Начинаем с одного объекта каждого класса
     classes = np.unique(y)
     S = []
-   
+
     for cls in classes:
-        cls_indices = np.where(y == cls)[0]
-        if len(cls_indices) > 0:
-            S.append(cls_indices[0])
-   
-    changed = True
-    while changed:
-        changed = False
-        model = ParzenKNN(k=1)
-        model.fit(X[S], y[S])
-       
+        idx = np.where(y == cls)[0][0]
+        S.append(idx)
+
+    S = list(S)
+
+    def loo_error(indices):
+        """LOO-оценка (CCV при k=1) на подмножестве эталонов"""
+        err = 0
+        for i in range(len(X)):
+            # ближайший сосед среди эталонов
+            distances = np.linalg.norm(X[indices] - X[i], axis=1)
+            nearest = indices[np.argmin(distances)]
+            if y[nearest] != y[i]:
+                err += 1
+        return err / len(X)
+
+    # 2. Текущий CCV
+    current_ccv = loo_error(S)
+
+    # 3. Жадное добавление эталонов по CCV
+    improved = True
+    while improved:
+        improved = False
+        best_candidate = None
+        best_ccv = current_ccv
+
         for i in range(len(X)):
             if i in S:
                 continue
-           
-            if model.predict([X[i]])[0] != y[i]:
-                S.append(i)
-                changed = True
-                break  # Перестраиваем модель
-   
+
+            candidate_S = S + [i]
+            ccv = loo_error(candidate_S)
+
+            if ccv < best_ccv:
+                best_ccv = ccv
+                best_candidate = i
+
+        if best_candidate is not None:
+            S.append(best_candidate)
+            current_ccv = best_ccv
+            improved = True
+
     return X[S], y[S]
 
 def calculate_metrics(y_true, y_pred):
