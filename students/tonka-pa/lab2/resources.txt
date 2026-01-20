@@ -1,0 +1,7 @@
+https://www.reddit.com/r/datasets/comments/shbzwe/is_there_a_master_list_of_places_to_look_for/
+https://sebastianraschka.com/Articles/2014_kernel_density_est.html#case-2---fixed-k
+http://getsomemath.ru/subtopic/machine_learning/kernel_smoothing/kernels_and_kernel_regression
+https://github.com/MahanFathi/CS231/blob/master/assignment1/cs231n/classifiers/k_nearest_neighbor.py#L113
+https://github.com/mantasu/cs231n/blob/master/assignment1/cs231n/classifiers/k_nearest_neighbor.py
+https://github.com/CestLucas/Parzen-Window/blob/master/parzen.py
+https://github.com/nikaemami/Parzen_Window_KNN_Model/blob/main/Parzen_Window_from_Scratch.ipynb
