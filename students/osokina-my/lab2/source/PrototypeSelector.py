@@ -6,8 +6,7 @@ MIN_LEFT_SAMPLES = 20
 
 
 class PrototypeSelector:
-    def __init__(self, X, y, k=1):
-        self.k = k
+    def __init__(self, X, y):
         self.prototypes = None
         self.prototype_labels = None
         # Изначально все индексы прототипы
@@ -92,7 +91,7 @@ class PrototypeSelector:
         """
 
         L = len(self.X_train)  # Общее количество объектов
-        k_neighbors = min(self.k, len(_prototypes_indices))  # Число соседей для проверки
+        k_neighbors = 1  # Число соседей для проверки
         total_ccv = 0.0
 
         # Создаем маску прототипов
@@ -143,20 +142,15 @@ class PrototypeSelector:
             
             best_ccv_score, best_prototypes_indices, best_removed_idx = self._find_best_prototype_to_remove(current_prototypes)
 
-            # Если CCV улучшился или почти не изменился, обновляем
-            if best_ccv_score <= current_ccv * 1.01:  # Допускаем небольшое колебание
-                self.prototypes_indices = best_prototypes_indices
-                current_ccv = best_ccv_score
-                self.prototypes_indices_history.append(best_prototypes_indices.copy())
-                self.ccv_scores.append(best_ccv_score)
+            # Удаляем жадно, по min score
+            self.prototypes_indices = best_prototypes_indices
+            current_ccv = best_ccv_score
+            self.prototypes_indices_history.append(best_prototypes_indices.copy())
+            self.ccv_scores.append(best_ccv_score)
 
-                print(
-                    f"Итерация {iteration}: удален элемент {best_removed_idx}, CCV={best_ccv_score:.6f}, прототипов: {len(best_prototypes_indices)}")
-                iteration += 1
-            else:
-                # Если CCV значительно ухудшился, останавливаемся
-                print(f"Остановка на итерации {iteration}: CCV увеличился слишком сильно")
-                break
+            print(
+                f"Итерация {iteration}: удален элемент {best_removed_idx}, CCV={best_ccv_score:.6f}, прототипов: {len(best_prototypes_indices)}")
+            iteration += 1
 
         # После выбора сохраняем прототипы и их метки
         self.prototypes = self.X_train[self.prototypes_indices]
