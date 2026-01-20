@@ -37,14 +37,15 @@ class MetricsEstimator:
 
 
 class LogReg:
-    def __init__(self):
+    def __init__(self, method: str):
         self.learning_rate = None
         self.weights = None
         self.Q = None
+        self.method = method
 
 
-    def fit(self, X: np.ndarray, y: np.ndarray, learning_rate: float = 0.2, n_iter: int = 10) -> None:
-        self.weights = self.weights = np.random.randn(X.shape[-1])
+    def _fit_nr(self, X: np.ndarray, y: np.ndarray, learning_rate: float = 0.2, n_iter: int = 10) -> list[float]:
+        self.weights = np.linalg.inv(X.T @ X) @ X.T @ y
 
         Q = []
         for i in range(n_iter):
@@ -60,6 +61,37 @@ class LogReg:
             Q.append(new_Q)
 
         return Q
+    
+
+    def _fit_irls(self, X: np.ndarray, y: np.ndarray, learning_rate: float = 0.2, n_iter: int = 10) -> list[float]:
+        self.weights = np.linalg.inv(X.T @ X) @ X.T @ y
+
+        Q = []
+        for i in range(n_iter):
+            sigma = self._sigmoid(self.weights @ X.T * y)
+            gamma = np.sqrt((1 - sigma) * sigma)
+
+            F_hat = np.diag(gamma) @ X
+            y_hat = y * np.sqrt((1 - sigma) / sigma)
+
+            grad = np.linalg.inv(F_hat.T @ F_hat) @ F_hat.T @ y_hat
+
+
+            self.weights += learning_rate * grad
+
+            new_Q = self._get_Q(X, y)
+            print(f"Iteration {i + 1}: Q = {new_Q}")
+            Q.append(new_Q)
+
+        return Q
+
+
+    def fit(self, X: np.ndarray, y: np.ndarray, learning_rate: float = 0.2, n_iter: int = 10) -> None:
+        if self.method == "nr":
+            return self._fit_nr(X, y, learning_rate, n_iter)
+
+        elif self.method == "irls":
+            return self._fit_irls(X, y, learning_rate, n_iter)
 
 
     def _get_Q(self, X: np.ndarray, y_true: np.ndarray) -> float:
@@ -71,9 +103,9 @@ class LogReg:
         return 1 / (1 + np.exp(-z))
         
 
-    def predict(self, X: np.ndarray, probabilities: bool = False) -> np.ndarray:
-        if not probabilities:
-            return np.sign(self._sigmoid(self.weights @ X.T))
+    def predict(self, X: np.ndarray, raw: bool = False) -> np.ndarray:
+        if not raw:
+            return np.sign(self.weights @ X.T)
         
-        return self._sigmoid(self.weights @ X.T)
+        return self.weights @ X.T
     
