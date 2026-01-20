@@ -1,0 +1,398 @@
+{
+    "LogRegNumpy":
+    {
+        "SGD_default": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.00, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "SGD_margin_based_sampling": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.00, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "by_margin",
+            "shuffle": true, 
+            "sampling_tau": 0.5,
+            "sampling_min_prob": 0.01, 
+            "refresh_rate": 200,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "SGD_correlation_init": {
+
+            "init_strategy": "corr",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.00, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "SGD_multistart_init": {
+
+            "init_strategy": "multistart",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.00, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "SGD_l2_0.25": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.25, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.0, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "SGD_momentum_0.9": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.9,
+            "l2": 0.00, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "SGD_optimal_step": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "sgd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.00, 
+            "optim_step": true,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "MiniBatch_SGD_l2_momentum": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "minibatch",
+            "batch_size": 32,
+            "momentum": 0.9,
+            "l2": 0.01, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        },
+
+        "GD_l2_granular": {
+
+            "init_strategy": "normal",
+
+            "total_steps": 20000, 
+            "learning_rate": 1e-2,
+            "gd_algo": "gd",
+            "batch_size": 1,
+            "momentum": 0.0,
+            "l2": 0.1, 
+            "optim_step": false,
+
+            "early_stopping": true,
+            "tolerance": 1e-4,
+            "n_startup_rounds": 0,
+            "early_stop_rounds": 5,
+            "validation_fraction": 0.1,
+
+            "rec_mode": "ema", 
+            "ema_lambda": 0.01,
+
+            "sampling_mode": "uniform",
+            "shuffle": true, 
+            "sampling_tau": 0.0,
+            "sampling_min_prob": 0.00, 
+            "refresh_rate": 0,
+
+            "steps_per_epoch": 500,
+            "verbose": false,
+
+            "use_best_weights": false,
+            "return_weights_history": false,
+            "random_seed": 18092025
+        }
+    },
+
+    "SGDClassifierSK":
+    {
+        "L2_0.01_const-lr": {
+            "loss": "log_loss",
+            "penalty": "l2",
+            "alpha": 0.01,
+            "max_iter": 20000,
+            "tol": 1e-4,
+            "shuffle": true,
+            "random_state": 18092025,
+            "learning_rate": "constant",
+            "eta0": 1e-2,
+            "early_stopping": false,
+            "validation_fraction": 0.1,
+            "n_iter_no_change": 50,
+            "n_jobs": 1,
+            "verbose": 0
+        },
+
+        "L2_0.01_adapt-lr": {
+            "loss": "log_loss",
+            "penalty": "l2",
+            "alpha": 0.01,
+            "max_iter": 20000,
+            "tol": 1e-4,
+            "shuffle": true,
+            "random_state": 18092025,
+            "learning_rate": "adaptive",
+            "eta0": 1e-2,
+            "early_stopping": false,
+            "validation_fraction": 0.1,
+            "n_iter_no_change": 50,
+            "n_jobs": 1,
+            "verbose": 0
+        },
+
+        "L2_0.01_opt-lr": {
+            "loss": "log_loss",
+            "penalty": "l2",
+            "alpha": 0.01,
+            "max_iter": 20000,
+            "tol": 1e-4,
+            "shuffle": true,
+            "random_state": 18092025,
+            "learning_rate": "optimal",
+            "eta0": 0.0,
+            "early_stopping": false,
+            "validation_fraction": 0.1,
+            "n_iter_no_change": 50,
+            "n_jobs": 1,
+            "verbose": 0
+        }
+    },
+
+    "LogisticRegressionSK":
+    {
+        "Default": {
+            "penalty": null,
+            "C": 1.0,
+            "max_iter": 20000,
+            "tol": 1e-4,
+            "random_state": 18092025,
+            "solver": "lbfgs",
+            "n_jobs": 1,
+            "verbose": 0
+        },
+
+        "L2_1.0": {
+            "penalty": "l2",
+            "C": 1.0,
+            "max_iter": 20000,
+            "tol": 1e-4,
+            "random_state": 18092025,
+            "solver": "lbfgs",
+            "n_jobs": 1,
+            "verbose": 0
+        }
+    }
+}
