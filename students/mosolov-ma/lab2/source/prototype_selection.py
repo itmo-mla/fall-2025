@@ -7,57 +7,52 @@ import matplotlib.pyplot as plt
 
 
 class PrototypeSelection:
-    def __init__(self, k=1):
-        self.k = k
-        self.history = []
-
-    def accuracy_score(self, y_true, y_pred):
-        return np.mean(y_true == y_pred)
+    def __init__(self, min_prototypes=1):
+        self.min_prototypes = min_prototypes
+        self.history_ccv = []
+        self.removal_order = []
 
     def fit(self, X, y):
         n = X.shape[0]
+        if n < 2:
+            raise ValueError("Нужно хотя бы 2 объекта для отбора эталонов")
+
+        knn = KNN()
+        knn.fit(X, y)
+
         mask = np.ones(n, dtype=bool)
-        model = KNN(k=self.k)
 
-        def compute_empirical_error(mask):
-            x_train = X[mask]
-            y_train = y[mask]
-            model.fit(x_train, y_train)
-            y_pred = model.predict(x_train)
-            return 1 - self.accuracy_score(y_true=y_train, y_pred=y_pred)
+        while np.sum(mask) > self.min_prototypes:
+            best_idx = None
+            best_ccv = float('inf')
 
-        flag = True
-        while flag and np.sum(mask) > 1:
-            min_error = float('inf')
-            min_index = -1
-            for idx in range(n):
-                if not mask[idx]:
-                    continue
+            for idx in np.where(mask)[0]:
                 mask[idx] = False
-                error = compute_empirical_error(mask)
-                if error < min_error:
-                    min_error = error
-                    min_index = idx
+                if np.sum(mask) == 0:
+                    mask[idx] = True
+                    continue
+
+                new_ccv = knn.compute_ccv(proto_idx=np.where(mask)[0])
+                if new_ccv < best_ccv:
+                    best_ccv = new_ccv
+                    best_idx = idx
+
                 mask[idx] = True
 
-            flag = self._should_continue(min_error)
-            if flag:
-                mask[min_index] = False
-                self.history.append(min_error)
-            else:
+            if best_idx is None:
                 break
+            
+            mask[best_idx] = False
+            self.removal_order.append(best_idx)
+            self.history_ccv.append(best_ccv)
 
-        return mask, self.history
+            print(f"Удалён объект {best_idx}, CCV = {best_ccv:.4f}, эталонов: {np.sum(mask)}")
+            if np.sum(mask) == 120:
+                self.best_mask = np.where(mask)[0]
 
-    def _should_continue(self, new_error):
-        if not self.history:
-            return True
-        if new_error < 1e-10:
-            print(f"Small new_error: {new_error}")
-            return False
-        recent_mean = np.mean(self.history[-5:])
-        print(f"Current error: {new_error}, Recent mean error: {recent_mean}, Diff: {new_error - recent_mean}")
-        return (new_error - recent_mean) < 1e-5
+
+        final_prototypes = np.where(mask)[0]
+        return final_prototypes, self.history_ccv, self.removal_order
 
 
 if __name__ == "__main__":
@@ -74,11 +69,29 @@ if __name__ == "__main__":
 
     k = 15
 
-    selector = PrototypeSelection(k=17)
-    mask, history = selector.fit(X_train, y_train)
-    X_selected = X_train[mask]
-    y_selected = y_train[mask]
+    selector = PrototypeSelection(min_prototypes=20)
+    final_mask, history_ccv, removal_order = selector.fit(X_train, y_train)
 
+    n_removed = np.arange(len(history_ccv))
+
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(n_removed, history_ccv, 'b-o', linewidth=2, markersize=4, label='CCV')
+
+
+    plt.xlabel('Количество удалённых объектов', fontsize=12)
+    plt.ylabel('CCV', fontsize=12)
+    plt.title('Зависимость CCV от числа удалённых эталонов\n'
+              f'(всего объектов: {len(X_train)})', fontsize=14)
+
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    X_selected = X_train[final_mask, :]
+    y_selected = y_train[final_mask]
 
     etalon_model = KNN(k=17)
     etalon_model.fit(X_selected, y_selected)
@@ -89,7 +102,7 @@ if __name__ == "__main__":
     y_pred_etalon = etalon_model.predict(X_test)
     y_pred_model = model.predict(X_test)
 
-    print(f"Accuracy etalon: {Metrics.accuracy(y_test, y_pred_etalon)}")
+    print(f"Accuracy prototypes: {Metrics.accuracy(y_test, y_pred_etalon)}")
     print(f"Accuracy model: {Metrics.accuracy(y_test, y_pred_model)}")
 
     print(f"Number of objects: {len(X_train)}")
@@ -111,7 +124,7 @@ if __name__ == "__main__":
 
 
     train_mask = np.ones(len(X_train), dtype=bool)
-    train_mask[mask] = False 
+    train_mask[selector.best_mask] = False 
     if np.any(train_mask):
         plt.scatter(X_train_pca[train_mask, 0], X_train_pca[train_mask, 1],
                 c=[class_to_color[label] for label, m in zip(y_train, train_mask) if m],
