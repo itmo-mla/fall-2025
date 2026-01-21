@@ -1,5 +1,7 @@
 import numpy as np
+
 from sklearn.cluster import KMeans
+from sklearn.model_selection import train_test_split
 
 from source.utils import euclidean_distance, gaussian_kernel
 
@@ -19,34 +21,43 @@ class KNN:
         self.X_train = X
         self.y_train = y
 
-    def cluster_fit(self, X, y, n_clusters=3):
+    def ccv_fit(self, X: np.ndarray, y: np.ndarray):
         """
-        Отбор эталонов на основе кластеризации.
-        В каждом классе выполняется k-means, берутся центры кластеров.
+        Итеративное удаление объектов из тренировочной выборки
+        пока точность на валидации не падает, объекты удаляются.
         """
-        unique_classes = np.unique(y)
+        # Приведение признаков
+        X_curr = X.copy()
+        y_curr = y.copy()
 
-        proto_X = []
-        proto_y = []
+        # Начальная точность
+        self.fit(X_curr, y_curr)
 
-        for cls in unique_classes:
-            # Выбираем объекты текущего класса
-            X_cls = X[y == cls]
+        y_pred = self.predict(X_curr)
+        best_acc = np.mean(y_pred == y_curr)
 
-            # Если объектов меньше количества кластеров — уменьшаем число кластеров
-            k = min(n_clusters, len(X_cls))
+        changed = True
+        while changed:
+            changed = False
+            # Проходим по объектам по одному
+            for i in range(len(X_curr)):
+                X_try = np.delete(X_curr, i, axis=0)
+                y_try = np.delete(y_curr, i, axis=0)
 
-            # Запускаем кластеризацию
-            kmeans = KMeans(n_clusters=k, random_state=0)
-            kmeans.fit(X_cls)
+                self.fit(X_try, y_try)
 
-            # Добавляем центры кластеров
-            proto_X.append(kmeans.cluster_centers_)
-            proto_y.append(np.full(k, cls))
+                y_pred = self.predict(X_curr)
+                acc = np.mean(y_pred == y_curr)
 
-        # Объединяем прототипы по классам
-        self.X_train = np.vstack(proto_X)
-        self.y_train = np.concatenate(proto_y)
+                # Если точность не уменьшилась — удаляем объект
+                if acc >= best_acc:
+                    X_curr = X_try
+                    y_curr = y_try
+                    best_acc = acc
+                    changed = True
+                    break  # начинаем цикл заново
+
+        self.X_train, self.y_train = X_curr, y_curr
 
     def predict(self, X):
         """

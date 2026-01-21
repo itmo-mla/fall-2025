@@ -13,11 +13,11 @@ if __name__ == '__main__':
 
     # Подбор параметра k
     k_values = range(1, 80)
-    best_k, loo_errors = loo_optimal_k(KNN, X_train.values, y_train.values, k_values)
+    best_k, loo_errors = loo_optimal_k(KNN, X_train, y_train, k_values)
     vis_LOO_errors(loo_errors, 15)
 
     # Подбор параметра k для sklearn модели
-    best_k, loo_errors = loo_optimal_k(KNeighborsClassifier, X_train.values, y_train.values, k_values)
+    best_k, loo_errors = loo_optimal_k(KNeighborsClassifier, X_train, y_train, k_values)
     vis_LOO_errors(loo_errors, 15)
 
     # Визуализация отбора эталонов
@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
     # Сравнение качества KNN с и без отбора эталонов
     model = KNN(17)
-    model.fit(X_train.to_numpy(), y_train.to_numpy())
-    y_pred = model.predict(X_test.to_numpy())
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
     print(classification_report(y_test, y_pred))
 
     model = KNN(5)
-    model.cluster_fit(X_train.to_numpy(), y_train.to_numpy(), 20)
-    y_pred = model.predict(X_test.to_numpy())
+    model.ccv_fit(X_train, y_train, 20)
+    y_pred = model.predict(X_test)
     print(classification_report(y_test, y_pred))
