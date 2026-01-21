@@ -4,6 +4,7 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
 
 from source.utils import euclidean_distance, gaussian_kernel
+from source.selector import greedy_prototype_selection
 
 
 class KNN:
@@ -21,43 +22,12 @@ class KNN:
         self.X_train = X
         self.y_train = y
 
-    def ccv_fit(self, X: np.ndarray, y: np.ndarray):
+    def ccv_fit(self, X: np.ndarray, y: np.ndarray, max_prototypes: int = 50, e: float = 0.1):
         """
-        Итеративное удаление объектов из тренировочной выборки
-        пока точность на валидации не падает, объекты удаляются.
+        Жадная стратегия добавления эталонов.
         """
-        # Приведение признаков
-        X_curr = X.copy()
-        y_curr = y.copy()
-
-        # Начальная точность
-        self.fit(X_curr, y_curr)
-
-        y_pred = self.predict(X_curr)
-        best_acc = np.mean(y_pred == y_curr)
-
-        changed = True
-        while changed:
-            changed = False
-            # Проходим по объектам по одному
-            for i in range(len(X_curr)):
-                X_try = np.delete(X_curr, i, axis=0)
-                y_try = np.delete(y_curr, i, axis=0)
-
-                self.fit(X_try, y_try)
-
-                y_pred = self.predict(X_curr)
-                acc = np.mean(y_pred == y_curr)
-
-                # Если точность не уменьшилась — удаляем объект
-                if acc >= best_acc:
-                    X_curr = X_try
-                    y_curr = y_try
-                    best_acc = acc
-                    changed = True
-                    break  # начинаем цикл заново
-
-        self.X_train, self.y_train = X_curr, y_curr
+        best_inds = greedy_prototype_selection(self, X, y, max_prototypes, e)
+        self.X_train, self.y_train = X[best_inds], y[best_inds]
 
     def predict(self, X):
         """

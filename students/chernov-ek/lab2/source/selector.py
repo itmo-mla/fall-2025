@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.metrics import f1_score
 
 
 def loo_optimal_k(
@@ -54,3 +55,27 @@ def loo_optimal_k(
     best_k = k_values[np.argmin(loo_errors)]
     print(f"\nОптимальное k: {best_k} с ошибкой LOO={min(loo_errors):.4f}")
     return best_k, loo_errors
+
+
+def greedy_prototype_selection(model, X, y, max_prototypes, e=0.1):
+    selected_indices = []
+    current_best_score = 0
+    
+    for _ in range(max_prototypes):
+        scores = []
+        for i in range(len(X)):
+            if i not in selected_indices:
+                trial_indices = selected_indices + [i]
+                model.fit(X[trial_indices], y[trial_indices])
+                # CCV: оцениваем точность на ВСЕЙ исходной выборке
+                y_pred = model.predict(X)
+                scores.append((f1_score(y, y_pred, average='micro'), i))
+        
+        best_step_score, best_idx = max(scores)
+        if best_step_score > (current_best_score - e):
+            current_best_score = best_step_score
+            selected_indices.append(best_idx)
+        else:
+            break # Улучшений больше нет
+    
+    return selected_indices

@@ -23,7 +23,8 @@ def vis_LOO_errors(loo_errors, step=5):
 def visualize_knn_predictions(
         knn_class,
         X_train, X_test, y_train, y_test,
-        k_list
+        k_list,
+        max_prototypes, e=0.1
     ):
     """
     Визуализация KNN с прототипами в 2D (через PCA).
@@ -50,7 +51,7 @@ def visualize_knn_predictions(
 
         # Обучаем KNN на исходных признаках
         model = knn_class(k)
-        model.ccv_fit(X_train, y_train)
+        model.ccv_fit(X_train, y_train, max_prototypes, e)
 
         # Предсказания для точек в PCA
         y_pred = model.predict(X_test)

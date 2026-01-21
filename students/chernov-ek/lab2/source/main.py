@@ -22,10 +22,14 @@ if __name__ == '__main__':
 
     # Визуализация отбора эталонов
     visualize_knn_predictions(
-        X_train, y_train,
-        k_list=[3, 17, 30],
-        n_clusters_list=[1, 3, 10],
-        knn_class=KNN
+        KNN,
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        [3, 30, 70],
+        max_prototypes=90,
+        e=0.7
     )
 
     # Сравнение качества KNN с и без отбора эталонов
