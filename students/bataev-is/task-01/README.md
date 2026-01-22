@@ -125,28 +125,59 @@ $$
 
 ---
 
-### 11) Как запустить
+### 11) Сравнение со sklearn (эталонные модели)
+
+В `source/main.py` добавлено опциональное сравнение с реализациями из **scikit-learn** (на тех же train/val/test и после той же стандартизации по train):
+
+* `RidgeClassifier` — ближайший аналог **least-squares / ridge** подхода (по смыслу ближе всего к MSE+L2).
+* `LogisticRegression` — сильный линейный baseline.
+* `LinearSVC` — линейная SVM как популярный baseline.
+
+Включение/выключение: `--sklearn / --no-sklearn` (по умолчанию включено).
+
+При включённом сравнении скрипт печатает `acc` для **train/val/test** для каждой baseline-модели.
+
+---
+
+### 12) Как запустить
 
 **Установить зависимости:**
 > pip install -U pandas tqdm matplotlib scikit-learn numpy
 
 **Запуск со стандартными параметрами:**
-> python source/main.py
+> python3 source/main.py
 
 **Запуск с кастомными параметрами:**
-> python source/main.py --epochs 120 --lr 0.03 --l2 0.001 --momentum 0.9 --multistart 25
+> python3 source/main.py --epochs 120 --lr 0.03 --l2 0.001 --momentum 0.9 --multistart 25
+
+**Запуск со sklearn-сравнением / без него:**
+> python3 source/main.py --sklearn
+>
+> python3 source/main.py --no-sklearn
 
 ---
 
 ### Результаты (пример вывода)
 
-* **Лучший метод по val accuracy**: `steepest_descent` (full-batch + Armijo)
-  * **val acc**: 0.9667
-  * **test acc**: 0.9000
+Параметры прогона: **seed=42**, **train/val/test=60/20/20**, стандартизация по train, **epochs=100**, **lr=0.05**, **momentum=0.2**, **l2=0.001**, **multistart=15**.
 
-**Confusion matrix (test):**
-```
-[[10  0  0]
- [ 0  8  2]
- [ 0  1  9]]
-```
+#### Сравнительная таблица — ручная реализация (numpy)
+
+| Метод (manual) | Train acc | Val acc | Test acc | Macro-F1 (test) |
+|---|---:|---:|---:|---:|
+| `corr_init_sgd` | 0.8000 | 0.9333 | 0.9000 | 0.8997 |
+| `multistart_sgd` | 0.8111 | 1.0000 | 0.8333 | 0.8329 |
+| `margin_order_sgd` | 0.6667 | 0.6667 | 0.6667 | 0.5473 |
+| `steepest_descent` | 0.8000 | 0.9667 | 0.9000 | 0.8997 |
+
+#### Сравнительная таблица — sklearn baselines
+
+| Модель (sklearn) | Train acc | Val acc | Test acc | Macro-F1 (test) |
+|---|---:|---:|---:|---:|
+| `RidgeClassifier(alpha=1.0)` | 0.8000 | 0.9667 | 0.9000 | 0.8997 |
+| `LogisticRegression` | 0.9556 | 1.0000 | 1.0000 | 1.0000 |
+| `LinearSVC(C=1.0)` | 0.9556 | 1.0000 | 0.9667 | 0.9666 |
+
+#### Детали (test) — confusion matrix / classification report
+
+Для подробных метрик sklearn (confusion matrix + precision/recall/F1) см. вывод `source/main.py` при запуске с `--sklearn`.

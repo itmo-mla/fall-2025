@@ -84,6 +84,25 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> 
     return cm
 
 
+def macro_f1(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> float:
+    """
+    Macro-averaged F1 over classes 0..n_classes-1.
+    Implemented without sklearn to keep the lab self-contained.
+    """
+    y_true = np.asarray(y_true).astype(int)
+    y_pred = np.asarray(y_pred).astype(int)
+    f1s: list[float] = []
+    for c in range(int(n_classes)):
+        tp = int(np.sum((y_true == c) & (y_pred == c)))
+        fp = int(np.sum((y_true != c) & (y_pred == c)))
+        fn = int(np.sum((y_true == c) & (y_pred != c)))
+        prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = (2.0 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0.0
+        f1s.append(float(f1))
+    return float(np.mean(f1s)) if f1s else 0.0
+
+
 def grad_check_mse(clf: LinearClassifier, X: np.ndarray, Y: np.ndarray, l2: float = 0.0, eps: float = 1e-6) -> float:
     """
     Numerical gradient check (finite differences). Returns max absolute error.
@@ -132,6 +151,18 @@ def run():
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--l2", type=float, default=1e-3)
     parser.add_argument("--multistart", type=int, default=15, help="number of random initializations (best on val)")
+    # Python < 3.9 has no argparse.BooleanOptionalAction, so keep a fallback.
+    if hasattr(argparse, "BooleanOptionalAction"):
+        parser.add_argument(
+            "--sklearn",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="compare with sklearn baselines (if scikit-learn is installed)",
+        )
+    else:  # pragma: no cover
+        parser.add_argument("--sklearn", action="store_true", help="enable sklearn baselines (if installed)")
+        parser.add_argument("--no-sklearn", dest="sklearn", action="store_false", help="disable sklearn baselines")
+        parser.set_defaults(sklearn=True)
     args = parser.parse_args()
 
     here = Path(__file__).resolve().parent
@@ -168,6 +199,9 @@ def run():
     err = grad_check_mse(clf0, X_tr[:10], Y_tr[:10], l2=args.l2)
     print("Gradient check (max abs err, first 10 train samples):", err)
 
+    manual_results: dict[str, dict[str, float]] = {}
+    sklearn_results: dict[str, dict[str, float]] = {}
+
     # --- 9.1) correlation init + SGD(momentum) + L2 ---
     clf_corr = LinearClassifier(n_features=X_tr.shape[1], n_classes=n_classes, seed=args.seed)
     clf_corr.init_correlation(X_tr, y_tr)
@@ -185,8 +219,10 @@ def run():
     tr_acc = accuracy(y_tr, clf_corr.predict(X_tr))
     va_acc = accuracy(y_va, clf_corr.predict(X_va))
     te_acc = accuracy(y_te, clf_corr.predict(X_te))
+    te_f1 = macro_f1(y_te, clf_corr.predict(X_te), n_classes=n_classes)
     print("\n[SGD+momentum+L2 | correlation init]")
     print("acc:", {"train": tr_acc, "val": va_acc, "test": te_acc})
+    manual_results["corr_init_sgd"] = {"train_acc": tr_acc, "val_acc": va_acc, "test_acc": te_acc, "test_macro_f1": te_f1}
     models = {"corr_init_sgd": clf_corr}
     model_scores = {"corr_init_sgd": {"val_acc": va_acc, "test_acc": te_acc}}
 
@@ -213,8 +249,12 @@ def run():
     clf_ms = LinearClassifier(n_features=X_tr.shape[1], n_classes=n_classes, seed=args.seed)
     clf_ms.W = best
     print("\n[SGD+momentum+L2 | random init | multistart]")
+    ms_tr = accuracy(y_tr, clf_ms.predict(X_tr))
+    ms_va = accuracy(y_va, clf_ms.predict(X_va))
     ms_te = accuracy(y_te, clf_ms.predict(X_te))
-    print("best val acc:", best_va, "test acc:", ms_te)
+    ms_f1 = macro_f1(y_te, clf_ms.predict(X_te), n_classes=n_classes)
+    print("acc:", {"train": ms_tr, "val": ms_va, "test": ms_te}, "| best val acc during search:", best_va)
+    manual_results["multistart_sgd"] = {"train_acc": ms_tr, "val_acc": float(ms_va), "test_acc": float(ms_te), "test_macro_f1": ms_f1}
     models["multistart_sgd"] = clf_ms
     model_scores["multistart_sgd"] = {"val_acc": float(best_va), "test_acc": float(ms_te)}
 
@@ -235,17 +275,22 @@ def run():
     margin_tr = accuracy(y_tr, clf_margin.predict(X_tr))
     margin_va = accuracy(y_va, clf_margin.predict(X_va))
     margin_te = accuracy(y_te, clf_margin.predict(X_te))
+    margin_f1 = macro_f1(y_te, clf_margin.predict(X_te), n_classes=n_classes)
     print("acc:", {"train": margin_tr, "val": margin_va, "test": margin_te})
+    manual_results["margin_order_sgd"] = {"train_acc": margin_tr, "val_acc": float(margin_va), "test_acc": float(margin_te), "test_macro_f1": margin_f1}
     models["margin_order_sgd"] = clf_margin
     model_scores["margin_order_sgd"] = {"val_acc": float(margin_va), "test_acc": float(margin_te)}
 
     # --- 7) steepest gradient descent (full-batch) ---
     clf_sd = LinearClassifier(n_features=X_tr.shape[1], n_classes=n_classes, seed=args.seed)
     sd_hist = clf_sd.fit_steepest_descent(X_tr, Y_tr, max_iters=250, lr0=1.0, l2_lambda=args.l2)
+    sd_tr = accuracy(y_tr, clf_sd.predict(X_tr))
     sd_va = accuracy(y_va, clf_sd.predict(X_va))
     sd_te = accuracy(y_te, clf_sd.predict(X_te))
+    sd_f1 = macro_f1(y_te, clf_sd.predict(X_te), n_classes=n_classes)
     print("\n[Steepest descent + Armijo line search | full-batch]")
-    print("final train loss:", sd_hist["loss"][-1], "val acc:", sd_va, "test acc:", sd_te)
+    print("final train loss:", sd_hist["loss"][-1], "acc:", {"train": sd_tr, "val": sd_va, "test": sd_te})
+    manual_results["steepest_descent"] = {"train_acc": sd_tr, "val_acc": float(sd_va), "test_acc": float(sd_te), "test_macro_f1": sd_f1}
     models["steepest_descent"] = clf_sd
     model_scores["steepest_descent"] = {"val_acc": float(sd_va), "test_acc": float(sd_te)}
 
@@ -265,16 +310,94 @@ def run():
     print("\nConfusion matrix (best, test):\n", cm)
 
     # --- optional baseline (sklearn) ---
-    try:
-        from sklearn.linear_model import LogisticRegression
-    except Exception:
-        LogisticRegression = None
+    if args.sklearn:
+        try:
+            from sklearn.linear_model import LogisticRegression, RidgeClassifier
+            from sklearn.metrics import classification_report as sk_classification_report
+            from sklearn.metrics import confusion_matrix as sk_confusion_matrix
+            from sklearn.svm import LinearSVC
+        except Exception:
+            LogisticRegression = None
+            RidgeClassifier = None
+            sk_classification_report = None
+            sk_confusion_matrix = None
+            LinearSVC = None
 
-    if LogisticRegression is not None:
-        lr = LogisticRegression(max_iter=2000, multi_class="auto")
-        lr.fit(X_tr, y_tr)
-        print("\n[Baseline: sklearn LogisticRegression]")
-        print("test acc:", accuracy(y_te, lr.predict(X_te)))
+        def _sk_report(name: str, model) -> None:
+            model.fit(X_tr, y_tr)
+            yhat_tr = model.predict(X_tr)
+            yhat_va = model.predict(X_va)
+            yhat_te = model.predict(X_te)
+            tr = accuracy(y_tr, yhat_tr)
+            va = accuracy(y_va, yhat_va)
+            te = accuracy(y_te, yhat_te)
+            f1 = macro_f1(y_te, yhat_te, n_classes=n_classes)
+            print(f"\n[Baseline: sklearn {name}]")
+            print("acc:", {"train": tr, "val": va, "test": te})
+            print("macro-F1 (test):", f1)
+            sklearn_results[name] = {"train_acc": tr, "val_acc": va, "test_acc": te, "test_macro_f1": f1}
+
+            if sk_confusion_matrix is not None:
+                cm_te = sk_confusion_matrix(y_te, yhat_te, labels=list(range(n_classes)))
+                print("confusion matrix (test):\n", cm_te)
+
+            if sk_classification_report is not None:
+                # zero_division=0 avoids warnings if a class is never predicted
+                try:
+                    rep = sk_classification_report(
+                        y_te,
+                        yhat_te,
+                        labels=list(range(n_classes)),
+                        target_names=[str(i) for i in range(n_classes)],
+                        digits=4,
+                        zero_division=0,
+                    )
+                except TypeError:
+                    # Older sklearn without zero_division
+                    rep = sk_classification_report(
+                        y_te,
+                        yhat_te,
+                        labels=list(range(n_classes)),
+                        target_names=[str(i) for i in range(n_classes)],
+                        digits=4,
+                    )
+                print("classification report (test):\n", rep)
+
+        # Closest to our objective: least-squares + L2 (ridge)
+        if RidgeClassifier is not None:
+            ridge = RidgeClassifier(alpha=1.0)
+            _sk_report("RidgeClassifier(alpha=1.0)", ridge)
+
+        # Strong linear baseline: multinomial/logistic
+        if LogisticRegression is not None:
+            # NOTE: sklearn versions differ; keep constructor args minimal for compatibility.
+            lr = LogisticRegression(max_iter=5000, random_state=args.seed)
+            _sk_report("LogisticRegression", lr)
+
+        # Another common linear baseline: linear SVM
+        if LinearSVC is not None:
+            svc = LinearSVC(C=1.0, random_state=args.seed)
+            _sk_report("LinearSVC(C=1.0)", svc)
+
+    # --- final concise comparison (tables) ---
+    def _print_table(title: str, rows: list[tuple[str, dict[str, float]]]) -> None:
+        cols = ["model", "train_acc", "val_acc", "test_acc", "test_macro_f1"]
+        print(f"\n=== {title} ===")
+        header = f"{cols[0]:<28} {cols[1]:>10} {cols[2]:>10} {cols[3]:>10} {cols[4]:>14}"
+        print(header)
+        print("-" * len(header))
+        for name, m in rows:
+            print(
+                f"{name:<28} "
+                f"{m.get('train_acc', float('nan')):10.4f} "
+                f"{m.get('val_acc', float('nan')):10.4f} "
+                f"{m.get('test_acc', float('nan')):10.4f} "
+                f"{m.get('test_macro_f1', float('nan')):14.4f}"
+            )
+
+    _print_table("Manual (numpy) methods", list(manual_results.items()))
+    if args.sklearn:
+        _print_table("Sklearn baselines", list(sklearn_results.items()))
 
 
 if __name__ == "__main__":
