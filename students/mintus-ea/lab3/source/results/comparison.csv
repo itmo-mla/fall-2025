@@ -1,0 +1,5 @@
+Dataset,Model,Accuracy,Support Vectors
+Linear,Custom SVM,1.0,4
+Linear,Sklearn SVC,1.0,4
+Moons (RBF),Custom SVM,0.93,35
+Moons (RBF),Sklearn SVC,0.93,35
