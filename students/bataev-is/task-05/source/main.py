@@ -185,7 +185,8 @@ def run():
     args = parser.parse_args()
 
     here = Path(__file__).resolve().parent
-    csv_path = here / "source" / "iris.csv"
+    # dataset is stored next to this file (source/iris.csv)
+    csv_path = here / "iris.csv"
     df = pd.read_csv(csv_path).dropna(how="any")
 
     classes = [c.strip() for c in str(args.classes).split(",")]
