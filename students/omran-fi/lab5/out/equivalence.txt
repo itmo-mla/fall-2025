@@ -1,0 +1,8 @@
+Equivalence (lecture formulas, y in {-1,+1})
+
+||w_newton - w_irls||_2 = 2.502280439729e-06
+max|w_newton - w_irls|  = 1.048350185329e-06
+
+Comparison with sklearn reference (may differ slightly due to solver/regularization)
+||w_newton - w_sklearn||_2 = 3.659360095886e+03
+max|w_newton - w_sklearn|  = 2.637767213856e+03

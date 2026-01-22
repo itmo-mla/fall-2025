@@ -1,0 +1,21 @@
+Lecture-Newton
+  converged=True, n_iter=116
+  acc_train=1.0000, acc_test=0.9211
+  cm_test=
+[[40  2]
+ [ 7 65]]
+
+Lecture-IRLS
+  converged=True, n_iter=116
+  acc_train=1.0000, acc_test=0.9211
+  cm_test=
+[[40  2]
+ [ 7 65]]
+
+Sklearn-Reference
+  converged=True, n_iter=51
+  acc_train=1.0000, acc_test=0.9211
+  cm_test=
+[[40  2]
+ [ 7 65]]
+
