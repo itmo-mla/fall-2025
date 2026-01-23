@@ -59,11 +59,11 @@
 #### Математическая формулировка
 
 1. Центрирование данных:
-   $$X_{\text{centered}} = X - \bar{X}$$
+   $$X_\text{centered} = X - \bar{X}$$
    где $\bar{X}$ — среднее по каждому признаку
 
 2. Сингулярное разложение:
-   $$X_{\text{centered}} = U \Sigma V^T$$
+   $$X_\text{centered} = U \Sigma V^T$$
    где:
    - $U \in \mathbb{R}^{n \times k}$ — левые сингулярные векторы
    - $\Sigma \in \mathbb{R}^{k \times k}$ — диагональная матрица сингулярных значений
@@ -75,11 +75,11 @@
    Строки $V^T$ — направления максимальной дисперсии
 
 4. Объясненная дисперсия:
-   $$\text{explained\_variance}_i = \frac{\sigma_i^2}{n - 1}$$
+   $$\text{explained variance}_i = \frac{\sigma_i^2}{n - 1}$$
    где $\sigma_i$ — i-е сингулярное значение
 
 5. Доля объясненной дисперсии:
-   $$\text{explained\_variance\_ratio}_i = \frac{\text{explained\_variance}_i}{\sum_j \text{explained\_variance}_j}$$
+   $$\text{explained variance ratio}_i = \frac{\text{explained variance}_i}{\sum_j \text{explained variance}_j}$$
 
 
 ### 2. Определение эффективной размерности (source/pca.py)
