@@ -1,0 +1,9 @@
+=== Lab 4: PCA via SVD ===
+Dataset: openml_house_prices
+X shape: (1121, 37)
+Standardize: True
+Effective dimensionality (threshold=0.95): k = 27
+
+Equivalence check with sklearn PCA:
+Max abs diff explained_variance_ratio (first 37 comps): 0.000000e+00
+Subspace distance (k=27) via projection Frobenius norm: 9.087322e-16
